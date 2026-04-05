@@ -1,8 +1,21 @@
 [gd_scene format=3 uid="uid://b6ivqfgsffvyi"]
 
+[ext_resource type="Script" uid="uid://vrl3t6rn8fpt" path="res://main.gd" id="1_h2yge"]
+[ext_resource type="Script" uid="uid://dcbqtmwlajuih" path="res://Player.gd" id="2_1bvp3"]
+[ext_resource type="Script" uid="uid://dhwsea0omd264" path="res://BoardData.gd" id="3_lquwl"]
+
+[sub_resource type="Resource" id="Resource_7mycd"]
+script = ExtResource("3_lquwl")
+metadata/_custom_type_script = "uid://dhwsea0omd264"
+
 [node name="Main" type="Node2D" unique_id=1381037218]
+script = ExtResource("1_h2yge")
 
 [node name="Label" type="Label" parent="." unique_id=240966808]
 offset_right = 40.0
 offset_bottom = 23.0
 text = "Project Monarch: Alpha 0.1.0"
+
+[node name="Player" type="Node" parent="." unique_id=1229729455]
+script = ExtResource("2_1bvp3")
+board_data = SubResource("Resource_7mycd")
