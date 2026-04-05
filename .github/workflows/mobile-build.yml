@@ -85,10 +85,16 @@ jobs:
       - name: Configure Godot Android SDK path
         run: |
           mkdir -p ~/.config/godot
-          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "/usr/local/lib/android/sdk"\n' \
-            > ~/.config/godot/editor_settings-4.tres
-          echo "--- editor_settings-4.tres ---"
+          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "/usr/local/lib/android/sdk"\nexport/android/java_sdk_path = "%s"\n' \
+            "$JAVA_HOME" > ~/.config/godot/editor_settings-4.tres
+          echo "=== editor_settings-4.tres ==="
           cat ~/.config/godot/editor_settings-4.tres
+          echo "=== ANDROID_SDK_ROOT contents ==="
+          ls "$ANDROID_SDK_ROOT"
+          echo "=== build-tools ==="
+          ls "$ANDROID_SDK_ROOT/build-tools" || echo "build-tools dir missing"
+          echo "=== Export templates ==="
+          ls "${HOME}/.local/share/godot/export_templates/" || echo "No templates dir"
 
       # Ensure the SDK components Godot requires are present on the runner.
       # sdkmanager is not on $PATH — it lives inside the SDK's cmdline-tools.
@@ -129,7 +135,7 @@ jobs:
 
       - name: Export Android AAB
         run: |
-          godot --headless \
+          godot --verbose --headless \
             --path "${{ github.workspace }}/${{ env.PROJECT_PATH }}" \
             --export-release "Android" \
             "${{ github.workspace }}/build/android/MonarchGame.aab"
