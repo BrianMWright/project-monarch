@@ -57,6 +57,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
+      # ── Environment fix ───────────────────────────────────────────────────
+      # GitHub Actions sets $HOME to /github/home inside containers, not /root.
+      # The Docker image's pre-installed templates and editor_settings live
+      # under /root — Godot won't find them. We re-install/re-write everything
+      # under $HOME so both GitHub Actions and Godot agree on the same path.
+
+      - name: Install export templates
+        run: |
+          TEMPLATES_DIR="${HOME}/.local/share/godot/export_templates/4.6.stable"
+          mkdir -p "${TEMPLATES_DIR}"
+          wget -q "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_export_templates.tpz" \
+            -O templates.tpz
+          unzip -q templates.tpz -d templates_extract
+          mv templates_extract/templates/* "${TEMPLATES_DIR}/"
+          echo "Android templates installed:"
+          ls "${TEMPLATES_DIR}/" | grep android
+
+      - name: Write Godot editor settings
+        run: |
+          # Find the JDK home — resolves symlinks so Godot gets the real path.
+          JAVA_PATH="$(readlink -f "$(which java)" | sed 's|/bin/java||')"
+          mkdir -p "${HOME}/.config/godot"
+          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "/root/android-sdk"\nexport/android/java_sdk_path = "%s"\nexport/android/debug_keystore = "/root/.android/debug.keystore"\nexport/android/debug_keystore_user = "androiddebugkey"\nexport/android/debug_keystore_pass = "android"\n' \
+            "${JAVA_PATH}" > "${HOME}/.config/godot/editor_settings-4.tres"
+          echo "=== editor_settings-4.tres ==="
+          cat "${HOME}/.config/godot/editor_settings-4.tres"
+
+      - name: Start ADB daemon
+        run: /root/android-sdk/platform-tools/adb start-server
+
       # ── Keystore ──────────────────────────────────────────────────────────
       # Written to res:// (project root) so export_presets.cfg can resolve it.
       # This file is in .gitignore and never committed.
