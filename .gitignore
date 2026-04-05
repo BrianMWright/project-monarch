@@ -14,3 +14,16 @@ export_credentials.cfg
 .mono/
 data_*/
 mono_crash.*.json
+
+# ── CI / Build artifacts ───────────────────────────────────────────────────
+# Never commit build output or signing material.
+
+# Android keystore — written at CI build time from ANDROID_KEYSTORE_BASE64 secret.
+release.keystore
+
+# Build output directories
+build/
+
+# Xcode export options plist — generated inline by the CI workflow.
+ExportOptions.plist
+release.keystore
