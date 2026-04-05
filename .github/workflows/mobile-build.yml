@@ -77,18 +77,27 @@ jobs:
 
       # ── Android SDK ───────────────────────────────────────────────────────
       # GitHub's ubuntu-latest runner ships the Android SDK at ANDROID_SDK_ROOT
-      # but Godot doesn't read that env var automatically — it looks for the
-      # path in its own editor_settings-4.tres file.
-      # We write a minimal settings file here so Godot can find the SDK.
+      # but Godot doesn't read that env var — it requires the path in its own
+      # editor_settings-4.tres file.
+      # Using printf avoids the leading-whitespace bug that heredocs in YAML
+      # introduce (indented heredoc content is written literally to the file,
+      # breaking Godot's GDResource parser).
       - name: Configure Godot Android SDK path
         run: |
           mkdir -p ~/.config/godot
-          cat > ~/.config/godot/editor_settings-4.tres << 'EOF'
-          [gd_resource type="EditorSettings" format=3]
+          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "/usr/local/lib/android/sdk"\n' \
+            > ~/.config/godot/editor_settings-4.tres
+          echo "--- editor_settings-4.tres ---"
+          cat ~/.config/godot/editor_settings-4.tres
 
-          [resource]
-          export/android/android_sdk_path = "/usr/local/lib/android/sdk"
-          EOF
+      # Ensure the SDK components Godot requires are present on the runner.
+      # build-tools and the platform API are the minimum for a release export.
+      - name: Install required Android SDK components
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "build-tools;34.0.0" \
+            "platforms;android-34"
 
       # Godot probes for ADB on port 5037 even during a headless export.
       # Starting the daemon here prevents the "Connection refused" failure.
