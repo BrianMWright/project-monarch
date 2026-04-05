@@ -82,19 +82,31 @@ jobs:
       # Using printf avoids the leading-whitespace bug that heredocs in YAML
       # introduce (indented heredoc content is written literally to the file,
       # breaking Godot's GDResource parser).
-      - name: Configure Godot Android SDK path
+      # Godot validates a debug keystore exists in editor settings even for
+      # release exports. Generate a standard Android debug keystore so that
+      # check passes, then write all three required paths into editor_settings.
+      - name: Generate debug keystore and configure Godot editor settings
         run: |
+          mkdir -p ~/.android
+          keytool -genkey -v \
+            -keystore ~/.android/debug.keystore \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US" \
+            -keyalg RSA -keysize 2048 -validity 10000
+
           mkdir -p ~/.config/godot
-          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "/usr/local/lib/android/sdk"\nexport/android/java_sdk_path = "%s"\n' \
-            "$JAVA_HOME" > ~/.config/godot/editor_settings-4.tres
+          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "/usr/local/lib/android/sdk"\nexport/android/java_sdk_path = "%s"\nexport/android/debug_keystore = "%s/.android/debug.keystore"\nexport/android/debug_keystore_user = "androiddebugkey"\nexport/android/debug_keystore_pass = "android"\n' \
+            "$JAVA_HOME" "$HOME" > ~/.config/godot/editor_settings-4.tres
+
           echo "=== editor_settings-4.tres ==="
           cat ~/.config/godot/editor_settings-4.tres
-          echo "=== ANDROID_SDK_ROOT contents ==="
-          ls "$ANDROID_SDK_ROOT"
           echo "=== build-tools ==="
           ls "$ANDROID_SDK_ROOT/build-tools" || echo "build-tools dir missing"
-          echo "=== Export templates ==="
-          ls "${HOME}/.local/share/godot/export_templates/" || echo "No templates dir"
+          echo "=== Godot export templates ==="
+          ls "${HOME}/.local/share/godot/export_templates/4.6.stable/" \
+            || echo "4.6.stable templates dir missing"
 
       # Ensure the SDK components Godot requires are present on the runner.
       # sdkmanager is not on $PATH — it lives inside the SDK's cmdline-tools.
