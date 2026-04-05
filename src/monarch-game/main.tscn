@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://vrl3t6rn8fpt" path="res://main.gd" id="1_h2yge"]
 [ext_resource type="Script" uid="uid://dcbqtmwlajuih" path="res://Player.gd" id="2_1bvp3"]
 [ext_resource type="Script" uid="uid://dhwsea0omd264" path="res://BoardData.gd" id="3_lquwl"]
+[ext_resource type="Script" uid="uid://bx3dpf7qk2vwn" path="res://DiceRoller.gd" id="4_droll"]
 
 [sub_resource type="Resource" id="Resource_7mycd"]
 script = ExtResource("3_lquwl")
@@ -16,6 +17,31 @@ offset_right = 40.0
 offset_bottom = 23.0
 text = "Project Monarch: Alpha 0.1.0"
 
+[node name="DiceRoller" type="Node" parent="." unique_id=3847261905]
+script = ExtResource("4_droll")
+
 [node name="Player" type="Node" parent="." unique_id=1229729455]
 script = ExtResource("2_1bvp3")
 board_data = SubResource("Resource_7mycd")
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=2938471650]
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI" unique_id=1837462610]
+offset_left = 40.0
+offset_top = 80.0
+offset_right = 440.0
+offset_bottom = 320.0
+theme_override_constants/separation = 20
+
+[node name="LabelTile" type="Label" parent="UI/VBoxContainer" unique_id=3746182950]
+text = "Tile: —"
+horizontal_alignment = 1
+
+[node name="LabelRoll" type="Label" parent="UI/VBoxContainer" unique_id=2039481756]
+text = "Roll: —"
+horizontal_alignment = 1
+
+[node name="ButtonRoll" type="Button" parent="UI/VBoxContainer" unique_id=4129381056]
+custom_minimum_size = Vector2(0, 60)
+size_flags_horizontal = 3
+text = "Roll Dice"

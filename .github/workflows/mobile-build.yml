@@ -1,0 +1,116 @@
+# mobile-build.yml
+# Builds a signed Android .aab on every push to main.
+#
+# ── Required GitHub Secrets ────────────────────────────────────────────────
+#
+#  ANDROID
+#    ANDROID_KEYSTORE_BASE64   base64-encoded release keystore file
+#                              Generate: base64 -i release.keystore | pbcopy
+#    ANDROID_KEY_ALIAS         key alias inside the keystore
+#    ANDROID_KEY_PASS          key + keystore password
+#
+# ── iOS (not yet active — requires Apple Developer Program, $99/yr) ────────
+#  When ready, restore the build-ios job from git history and add:
+#    IOS_P12_BASE64            base64-encoded Apple Distribution .p12 cert
+#    IOS_P12_PASSWORD          password for the .p12
+#    IOS_PROVISIONING_PROFILE_BASE64   base64-encoded .mobileprovision
+#    IOS_TEAM_ID               10-character Apple Developer Team ID
+#
+# ── One-time setup ─────────────────────────────────────────────────────────
+#  1. In Godot editor: Project → Export → confirm Android preset,
+#     set bundle ID to com.monarchgame.app, save — updates export_presets.cfg.
+#  2. Generate a release keystore if you haven't already:
+#     keytool -genkey -v -keystore release.keystore -alias monarch \
+#       -keyalg RSA -keysize 2048 -validity 10000
+#  3. Add the three ANDROID_ secrets above to:
+#     GitHub repo → Settings → Secrets and variables → Actions.
+
+name: Mobile Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.6"
+  GODOT_RELEASE: "stable"
+  PROJECT_PATH: src/monarch-game
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ANDROID
+# ─────────────────────────────────────────────────────────────────────────────
+jobs:
+  build-android:
+    name: Android (.aab)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Godot's Android exporter requires JDK 17.
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      # ── Godot headless ────────────────────────────────────────────────────
+      - name: Install Godot ${{ env.GODOT_VERSION }}-${{ env.GODOT_RELEASE }}
+        run: |
+          FILENAME="Godot_v${GODOT_VERSION}-${GODOT_RELEASE}_linux.x86_64"
+          wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_RELEASE}/${FILENAME}.zip"
+          unzip -q "${FILENAME}.zip"
+          chmod +x "${FILENAME}"
+          sudo mv "${FILENAME}" /usr/local/bin/godot
+
+      - name: Install export templates
+        run: |
+          TEMPLATES_DIR="${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_RELEASE}"
+          mkdir -p "${TEMPLATES_DIR}"
+          TPZ="Godot_v${GODOT_VERSION}-${GODOT_RELEASE}_export_templates.tpz"
+          wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_RELEASE}/${TPZ}"
+          unzip -q "${TPZ}" -d tpz_extract
+          mv tpz_extract/templates/* "${TEMPLATES_DIR}/"
+
+      # ── Keystore ──────────────────────────────────────────────────────────
+      # Written to the project root (res://) so export_presets.cfg can find it.
+      # This file is in .gitignore and never committed.
+      - name: Write release keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode \
+            > "${{ env.PROJECT_PATH }}/release.keystore"
+
+      # Replace the CI_KEY_ALIAS / CI_KEY_PASS placeholders that are
+      # committed in export_presets.cfg with the real secret values.
+      - name: Inject keystore credentials
+        run: |
+          sed -i \
+            "s|CI_KEY_ALIAS|${{ secrets.ANDROID_KEY_ALIAS }}|g" \
+            "${{ env.PROJECT_PATH }}/export_presets.cfg"
+          sed -i \
+            "s|CI_KEY_PASS|${{ secrets.ANDROID_KEY_PASS }}|g" \
+            "${{ env.PROJECT_PATH }}/export_presets.cfg"
+
+      # ── Export ────────────────────────────────────────────────────────────
+      - name: Create output directory
+        run: mkdir -p build/android
+
+      - name: Export Android AAB
+        run: |
+          godot --headless \
+            --path "${{ github.workspace }}/${{ env.PROJECT_PATH }}" \
+            --export-release "Android" \
+            "${{ github.workspace }}/build/android/MonarchGame.aab"
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MonarchGame-android-aab
+          path: build/android/MonarchGame.aab
+          retention-days: 30
+
+# ── iOS job removed — restore from git history when Apple Developer Program
+# is active and IOS_ secrets have been added to the repository.
