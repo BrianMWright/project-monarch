@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://b6ivqfgsffvyi"]
+
+[node name="Main" type="Node2D" unique_id=1381037218]
+
+[node name="Label" type="Label" parent="." unique_id=240966808]
+offset_right = 40.0
+offset_bottom = 23.0
+text = "Project Monarch: Alpha 0.1.0"
