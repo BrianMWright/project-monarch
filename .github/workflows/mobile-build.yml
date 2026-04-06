@@ -20,7 +20,6 @@ jobs:
       - name: Install Linux Dependencies (Ubuntu 24.04 Fix)
         run: |
           sudo apt-get update
-          # Updated package names for Ubuntu 24.04 'Noble'
           sudo apt-get install -y wget zip unzip libfontconfig1 libxcursor1 libxinerama1 libxrandr2 libxi6 libgl1 libasound2t64 libpulse0 libdbus-1-3 libudev1
 
       - name: Setup Android SDK
@@ -41,24 +40,39 @@ jobs:
           mv ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable/templates/* ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable/
           rm -rf ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable/templates
 
-      - name: Write Hardcoded Keystore
+      - name: Create Keystores
         run: |
+          # 1. Create the Release Keystore from your hardcoded string
           echo "${{ env.RAW_KEYSTORE }}" | base64 --decode > "${{ github.workspace }}/${{ env.PROJECT_PATH }}/release.keystore"
+          
+          # 2. Create a dummy Debug Keystore (Godot requires this to exist to validate the Android export)
+          keytool -genkey -v -keystore "${{ github.workspace }}/${{ env.PROJECT_PATH }}/debug.keystore" -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
         env:
           RAW_KEYSTORE: "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"
 
       - name: Export Android APK
         env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
-          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: "${{ github.workspace }}/${{ env.PROJECT_PATH }}/release.keystore"
-          GODOT_ANDROID_KEYSTORE_RELEASE_USER: "${{ secrets.ANDROID_KEY_ALIAS }}"
-          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: "${{ secrets.ANDROID_KEY_PASS }}"
+          GODOT_ANDROID_SDK_PATH: ${{ env.ANDROID_HOME }}
         run: |
           mkdir -p build/android
+          
+          # Manually force all paths into Godot's head before the export
+          # This tells Godot exactly where the SDK and Keystores are
+          godot --headless --path "${{ env.PROJECT_PATH }}" --editor \
+            --set-setting "export/android/android_sdk_path" "${{ env.ANDROID_HOME }}" \
+            --set-setting "export/android/debug_keystore" "${{ github.workspace }}/${{ env.PROJECT_PATH }}/debug.keystore" \
+            --set-setting "export/android/debug_keystore_user" "androiddebugkey" \
+            --set-setting "export/android/debug_keystore_pass" "android" \
+            --quit
+          
+          # Now try the export again with verbose logging
           godot --headless --verbose \
             --path "${{ env.PROJECT_PATH }}" \
             --export-release "Android" \
-            "${{ github.workspace }}/build/android/MonarchGame.apk"
+            "${{ github.workspace }}/build/android/MonarchGame.apk" \
+            "release/keystore=\"${{ github.workspace }}/${{ env.PROJECT_PATH }}/release.keystore\"" \
+            "release/keystore_user=\"${{ secrets.ANDROID_KEY_ALIAS }}\"" \
+            "release/keystore_password=\"${{ secrets.ANDROID_KEY_PASS }}\""
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
