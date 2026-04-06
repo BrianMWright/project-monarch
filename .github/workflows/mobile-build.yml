@@ -80,7 +80,7 @@ jobs:
           _KEY_PASS: ${{ secrets.ANDROID_KEY_PASS }}
         run: |
           python3 - <<'PYEOF'
-          import os
+          import os, re
           cfg = os.path.join(os.environ['PROJECT_PATH'], 'export_presets.cfg')
           alias = os.environ.get('_KEY_ALIAS', '')
           passwd = os.environ.get('_KEY_PASS', '')
@@ -88,9 +88,43 @@ jobs:
               content = f.read()
           content = content.replace('CI_KEY_ALIAS', alias)
           content = content.replace('CI_KEY_PASS', passwd)
+          # Force-clear min_sdk and target_sdk to prevent Godot rejecting them
+          # when use_gradle_build is false
+          content = re.sub(r'gradle_build/min_sdk="[^"]*"', 'gradle_build/min_sdk=""', content)
+          content = re.sub(r'gradle_build/target_sdk="[^"]*"', 'gradle_build/target_sdk=""', content)
           with open(cfg, 'w') as f:
               f.write(content)
           PYEOF
+
+      - name: Pre-export Diagnostics
+        run: |
+          echo "=== Android SDK ==="
+          echo "ANDROID_HOME=${ANDROID_HOME}"
+          echo "JAVA_HOME=${JAVA_HOME}"
+          ls "${ANDROID_HOME}/build-tools/" 2>/dev/null || echo "No build-tools dir"
+          ls "${ANDROID_HOME}/platforms/" 2>/dev/null || echo "No platforms dir"
+          test -f "${ANDROID_HOME}/platform-tools/adb" && echo "adb: OK" || echo "adb: MISSING"
+          test -f "${ANDROID_HOME}/build-tools/35.0.1/aapt2" && echo "aapt2: OK" || echo "aapt2: MISSING"
+          echo ""
+          echo "=== Editor Settings ==="
+          cat "${HOME}/.config/godot/editor_settings-4.tres"
+          echo ""
+          echo "=== Export Preset (gradle_build + keystore + package) ==="
+          grep -E "^(gradle_build/|keystore/|package/)" "${{ env.PROJECT_PATH }}/export_presets.cfg" | head -20
+          echo ""
+          echo "=== Release Keystore ==="
+          test -f "${{ env.PROJECT_PATH }}/release.keystore" && echo "EXISTS ($(wc -c < "${{ env.PROJECT_PATH }}/release.keystore") bytes)" || echo "MISSING"
+          echo ""
+          echo "=== Debug Keystore ==="
+          test -f "${HOME}/.android/debug.keystore" && echo "EXISTS" || echo "MISSING"
+          echo ""
+          echo "=== Export Templates ==="
+          ls "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable/" | head -5
+          echo "... ($(ls "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable/" | wc -l) total files)"
+
+      - name: Import Godot Project
+        run: |
+          godot --headless --path "${{ env.PROJECT_PATH }}" --import 2>&1 | tee /tmp/godot-import.log || true
 
       - name: Export Android APK
         run: |
@@ -98,10 +132,28 @@ jobs:
           godot --headless --verbose \
             --path "${{ env.PROJECT_PATH }}" \
             --export-release "Android" \
-            "${{ github.workspace }}/build/android/MonarchGame.apk"
+            "${{ github.workspace }}/build/android/MonarchGame.apk" \
+            2>&1 | tee /tmp/godot-export.log
+          # Check if APK was actually produced
+          if [ ! -f "${{ github.workspace }}/build/android/MonarchGame.apk" ]; then
+            echo "ERROR: APK was not produced"
+            exit 1
+          fi
 
-      - name: Upload Artifact
+      - name: Upload Godot Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-export-logs
+          path: |
+            /tmp/godot-import.log
+            /tmp/godot-export.log
+          retention-days: 7
+
+      - name: Upload APK Artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: MonarchGame-android-apk
           path: build/android/MonarchGame.apk
+          retention-days: 30
