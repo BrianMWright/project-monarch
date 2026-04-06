@@ -157,9 +157,11 @@ jobs:
 
       - name: Debug Environment
         run: |
-          ls -R "${{ github.workspace }}/src/monarch-game"
+          echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}"
+          echo "PWD=$(pwd)"
+          ls -R "${{ env.PROJECT_PATH }}"
           echo "Checking for keystore:"
-          ls -l "${{ github.workspace }}/src/monarch-game/release.keystore"
+          ls -l "${{ env.PROJECT_PATH }}/release.keystore"
 
       - name: Export Android AAB
         env:
