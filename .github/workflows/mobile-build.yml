@@ -152,10 +152,16 @@ jobs:
           fi
 
       - name: Export Android APK
+        env:
+          ANDROID_HOME: /opt/android-sdk
+          # This forces Godot to use the decoded keystore regardless of file settings
+          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: "src/monarch-game/release.keystore"
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: "${{ secrets.ANDROID_KEY_ALIAS }}"
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: "${{ secrets.ANDROID_KEY_PASS }}"
         run: |
           mkdir -p build/android
-          godot -v --headless \
-            --path "${{ env.PROJECT_PATH }}" \
+          godot --headless --verbose \
+            --path "src/monarch-game" \
             --export-release "Android" \
             "build/android/MonarchGame.apk"
 
