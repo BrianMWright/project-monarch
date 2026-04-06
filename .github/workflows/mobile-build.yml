@@ -149,17 +149,27 @@ jobs:
       # Patch export_presets.cfg:
       #   1. Point keystore/release at the absolute /tmp path.
       #   2. Replace CI_KEY_ALIAS / CI_KEY_PASS placeholders with real secrets.
+      # Python is used instead of sed so passwords containing $, !, & or other
+      # shell-special characters are never interpreted by the shell.
       - name: Inject keystore path and credentials
+        env:
+          _KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          _KEY_PASS: ${{ secrets.ANDROID_KEY_PASS }}
         run: |
-          sed -i \
-            's|keystore/release="res://release.keystore"|keystore/release="/tmp/release.keystore"|g' \
-            "${{ env.PROJECT_PATH }}/export_presets.cfg"
-          sed -i \
-            "s|CI_KEY_ALIAS|${{ secrets.ANDROID_KEY_ALIAS }}|g" \
-            "${{ env.PROJECT_PATH }}/export_presets.cfg"
-          sed -i \
-            "s|CI_KEY_PASS|${{ secrets.ANDROID_KEY_PASS }}|g" \
-            "${{ env.PROJECT_PATH }}/export_presets.cfg"
+          python3 - <<'PYEOF'
+          import os
+          cfg = os.environ['PROJECT_PATH'] + '/export_presets.cfg'
+          alias = os.environ['_KEY_ALIAS']
+          passwd = os.environ['_KEY_PASS']
+          with open(cfg) as f:
+              content = f.read()
+          content = content.replace('res://release.keystore', '/tmp/release.keystore')
+          content = content.replace('CI_KEY_ALIAS', alias)
+          content = content.replace('CI_KEY_PASS', passwd)
+          with open(cfg, 'w') as f:
+              f.write(content)
+          print("Patched export_presets.cfg")
+          PYEOF
           # Fail loudly if any placeholder survived (secret not set / wrong name).
           if grep -qE "CI_KEY_ALIAS|CI_KEY_PASS" "${{ env.PROJECT_PATH }}/export_presets.cfg"; then
             echo "ERROR: Placeholder not replaced — check ANDROID_KEY_ALIAS / ANDROID_KEY_PASS secrets."
