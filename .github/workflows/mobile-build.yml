@@ -1,11 +1,12 @@
 # mobile-build.yml
 # Builds a signed Android .apk on every push to main.
 #
-# The barichello/godot-ci image ships Android build-tools 33.0.2.
-# Godot 4.6 requires build-tools 35.0.1 (and the Godot docs explicitly warn
-# against distro-packaged Android SDKs on Linux). We install a clean SDK at
-# /opt/android-sdk with the exact packages Godot 4.6 expects, ignoring
-# anything the container ships.
+# Runs on a bare ubuntu-latest runner — NOT the barichello/godot-ci container.
+# The container approach was abandoned because the image ships Android
+# build-tools 33.0.2, which Godot 4.6 rejects (requires 35.0.1), and the
+# Godot docs explicitly warn against distro-packaged Android SDKs on Linux.
+# A bare runner lets us install Godot and an exact-version Android SDK with
+# no stale-SDK ambiguity and no Docker $HOME / platform-tools-2 quirks.
 #
 # ── Required GitHub Secrets ────────────────────────────────────────────────
 #
@@ -34,90 +35,101 @@ on:
 env:
   GODOT_VERSION: "4.6"
   PROJECT_PATH: src/monarch-game
-  # Clean SDK path — deliberately separate from whatever the image ships.
-  ANDROID_SDK_ROOT: /opt/android-sdk
+  ANDROID_HOME: /opt/android-sdk
 
 jobs:
   build-android:
     name: Android (.apk)
-    runs-on: ubuntu-latest
-    container:
-      image: barichello/godot-ci:4.6
+    runs-on: ubuntu-latest   # bare runner — no container
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      # ── System libraries ──────────────────────────────────────────────────
-      - name: Install system libraries
+      # ── System dependencies ───────────────────────────────────────────────
+      # openjdk-17-jdk  → required by sdkmanager and Godot's apksigner path
+      # libfontconfig1 + X11 stubs → Godot headless needs them even with --headless
+      - name: Install system dependencies
         run: |
-          apt-get update -qq
-          apt-get install -y \
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            openjdk-17-jdk \
             libfontconfig1 \
             libxcursor1 \
             libxinerama1 \
             libxi6 \
             libvulkan1 \
-            python3 \
+            libxrandr2 \
             unzip \
-            wget \
-            libxrandr-dev || apt-get install -y libxrandr2
+            wget
 
-      # ── Fresh Android SDK ─────────────────────────────────────────────────
-      # Installs the exact packages Godot 4.6 requires:
-      #   build-tools 35.0.1, platforms;android-35, platform-tools,
-      #   CMake 3.10.2.4988404, NDK r28b (28.1.13356709)
+      # ── Godot 4.6 headless binary ─────────────────────────────────────────
+      # In Godot 4.x there is no separate headless binary — the standard Linux
+      # editor binary accepts --headless for CI export.
+      - name: Install Godot 4.6
+        run: |
+          wget -q \
+            "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_linux.x86_64.zip" \
+            -O /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          sudo install -m 755 \
+            /tmp/godot/Godot_v4.6-stable_linux.x86_64 \
+            /usr/local/bin/godot
+          godot --version
+
+      # ── Android SDK ───────────────────────────────────────────────────────
+      # Installs exactly the packages Godot 4.6 requires per the official docs:
+      #   platform-tools, build-tools;35.0.1, platforms;android-35,
+      #   cmake;3.10.2.4988404, ndk;28.1.13356709 (r28b)
       #
-      # NOTE: NDK r28b is ~2 GB; this step takes several minutes.
-      # If build time is a concern and your project has no GDExtension
-      # native code, you can drop the ndk line — it is only strictly required
-      # for Gradle builds with C++ plugins.
+      # NOTE: NDK r28b is ~2.3 GB. If your project has no GDExtension native
+      # code and uses gradle_build/use_gradle_build=false, you can comment out
+      # the ndk line to reduce build time without affecting APK export.
       - name: Install Android SDK
         run: |
-          SDK="${ANDROID_SDK_ROOT}"
+          SDK="${ANDROID_HOME}"
           mkdir -p "${SDK}/cmdline-tools"
 
-          # Download Android command-line tools (build 11076708 = tools 11.0).
-          # Update this version number when Google releases a newer build.
+          # cmdline-tools build 11076708 = tools package version 11.0
           wget -q \
             "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
             -O /tmp/cmdline-tools.zip
-          unzip -q /tmp/cmdline-tools.zip -d /tmp/cmdline-tools-extract
-          # The zip unpacks a single "cmdline-tools/" directory; place it at
-          # cmdline-tools/latest so sdkmanager resolves packages correctly.
-          mv /tmp/cmdline-tools-extract/cmdline-tools "${SDK}/cmdline-tools/latest"
+          unzip -q /tmp/cmdline-tools.zip -d /tmp/clt-extract
+          # The zip contains a single "cmdline-tools/" dir; sdkmanager requires
+          # it to live at cmdline-tools/latest/ inside ANDROID_HOME.
+          mv /tmp/clt-extract/cmdline-tools "${SDK}/cmdline-tools/latest"
 
           SDKMANAGER="${SDK}/cmdline-tools/latest/bin/sdkmanager"
 
-          # Pre-accept all licenses (two methods for reliability).
+          # Pre-write license acceptance files (belt-and-suspenders with yes|).
           mkdir -p "${SDK}/licenses"
-          printf '%s\n' \
-            '24333f8a63b6825ea9c5514f83c2829b004d1fee' \
+          printf '%s\n' '24333f8a63b6825ea9c5514f83c2829b004d1fee' \
             > "${SDK}/licenses/android-sdk-license"
-          printf '%s\n' \
-            '84831b9409646a918e30573bab4c9c91346d8abd' \
+          printf '%s\n' '84831b9409646a918e30573bab4c9c91346d8abd' \
             > "${SDK}/licenses/android-sdk-preview-license"
+          printf '%s\n' 'd56f5187479451eabf01fb78af6dfcb131a6481e' \
+            >> "${SDK}/licenses/android-sdk-license"
           yes | "${SDKMANAGER}" --licenses > /dev/null 2>&1 || true
 
-          # Install exact packages required by Godot 4.6.
+          # Install required packages
           "${SDKMANAGER}" \
+            "platform-tools" \
             "build-tools;35.0.1" \
             "platforms;android-35" \
-            "platform-tools" \
             "cmake;3.10.2.4988404" \
             "ndk;28.1.13356709"
 
-          echo "=== Installed SDK layout ==="
+          # Add platform-tools to PATH for adb
+          echo "${SDK}/platform-tools" >> "${GITHUB_PATH}"
+          echo "ANDROID_HOME=${SDK}"      >> "${GITHUB_ENV}"
+          echo "ANDROID_SDK_ROOT=${SDK}"  >> "${GITHUB_ENV}"
+
+          echo "=== SDK packages installed ==="
           ls "${SDK}/build-tools/"
           ls -l "${SDK}/platform-tools/adb"
 
-          # Persist for all downstream steps.
-          echo "ANDROID_SDK_ROOT=${SDK}" >> "${GITHUB_ENV}"
-
-      # ── Export templates ──────────────────────────────────────────────────
-      # $HOME inside a GitHub Actions container is /github/home, not /root.
-      # Download fresh templates into the real $HOME so Godot finds them.
-      - name: Install export templates
+      # ── Godot export templates ────────────────────────────────────────────
+      - name: Install Godot export templates
         run: |
           TEMPLATES_DIR="${HOME}/.local/share/godot/export_templates/4.6.stable"
           mkdir -p "${TEMPLATES_DIR}"
@@ -130,18 +142,18 @@ jobs:
           ls "${TEMPLATES_DIR}/" | grep android
 
       # ── Godot editor settings ─────────────────────────────────────────────
+      # Points Godot at the freshly installed SDK and JDK.
       - name: Write Godot editor settings
         run: |
-          SDK="${ANDROID_SDK_ROOT}"
           JAVA_PATH="$(readlink -f "$(which java)" | sed 's|/bin/java||')"
-          DEBUG_KS="${HOME}/.android/debug.keystore"
+          echo "Java home: ${JAVA_PATH}"
 
           mkdir -p "${HOME}/.config/godot"
           {
             printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\n'
-            printf 'export/android/android_sdk_path = "%s"\n' "${SDK}"
+            printf 'export/android/android_sdk_path = "%s"\n' "${ANDROID_HOME}"
             printf 'export/android/java_sdk_path = "%s"\n'    "${JAVA_PATH}"
-            printf 'export/android/debug_keystore = "%s"\n'   "${DEBUG_KS}"
+            printf 'export/android/debug_keystore = "%s/.android/debug.keystore"\n' "${HOME}"
             printf 'export/android/debug_keystore_user = "androiddebugkey"\n'
             printf 'export/android/debug_keystore_pass = "android"\n'
           } > "${HOME}/.config/godot/editor_settings-4.tres"
@@ -150,15 +162,11 @@ jobs:
           cat "${HOME}/.config/godot/editor_settings-4.tres"
 
       - name: Start ADB daemon
-        run: |
-          ADB="${ANDROID_SDK_ROOT}/platform-tools/adb"
-          echo "Starting ADB: ${ADB}"
-          "${ADB}" start-server
+        run: adb start-server
 
       # ── Keystore ──────────────────────────────────────────────────────────
-      # Written to /tmp so Godot resolves it via an absolute path.
-      # res://release.keystore is unreliable inside Docker containers because
-      # res:// is relative to --path which may differ from the write CWD.
+      # Written to /tmp (absolute path) — res://release.keystore is unreliable
+      # because res:// resolves relative to --path, not the runner CWD.
       - name: Write and verify release keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" \
@@ -169,8 +177,8 @@ jobs:
             -noprompt
           echo "Keystore OK — $(stat -c%s /tmp/release.keystore) bytes"
 
-      # Python str.replace() handles passwords containing $, !, & — characters
-      # that shell-based sed silently mangles when expanded inside double quotes.
+      # Python str.replace() handles passwords containing $, !, & safely.
+      # sed with double-quoted strings silently mangles those characters.
       - name: Inject keystore path and credentials
         env:
           _KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -196,38 +204,44 @@ jobs:
             echo "ERROR: placeholder not replaced — check ANDROID_KEY_ALIAS / ANDROID_KEY_PASS secrets."
             exit 1
           fi
-          echo "=== keystore lines in export_presets.cfg ==="
+          echo "=== keystore lines ==="
           grep "keystore/" "${{ env.PROJECT_PATH }}/export_presets.cfg"
 
       # ── Pre-export diagnostics ────────────────────────────────────────────
       - name: Pre-export diagnostics
         run: |
-          echo "=== Android export templates ==="
+          echo "=== SDK root: ${ANDROID_HOME} ==="
+
+          echo "--- build-tools ---"
+          ls -la "${ANDROID_HOME}/build-tools"
+
+          echo "--- platforms ---"
+          ls -la "${ANDROID_HOME}/platforms"
+
+          echo "--- platform-tools/adb ---"
+          test -f "${ANDROID_HOME}/platform-tools/adb" \
+            && echo "OK" || echo "MISSING — export will fail"
+
+          echo "--- build-tools/35.0.1/apksigner ---"
+          test -f "${ANDROID_HOME}/build-tools/35.0.1/apksigner" \
+            && echo "OK" || echo "MISSING — signing will fail"
+
+          echo "--- build-tools/35.0.1/aapt2 ---"
+          test -f "${ANDROID_HOME}/build-tools/35.0.1/aapt2" \
+            && echo "OK" || echo "MISSING — resource packaging will fail"
+
+          echo "--- Android export templates ---"
           ls "${HOME}/.local/share/godot/export_templates/4.6.stable/" \
-            | grep -i android
+            | grep android
 
-          echo "=== Build-tools versions installed ==="
-          ls "${ANDROID_SDK_ROOT}/build-tools/"
-
-          echo "=== apksigner (in build-tools 35.0.1) ==="
-          ls -l "${ANDROID_SDK_ROOT}/build-tools/35.0.1/apksigner"
-
-          echo "=== platform-tools/adb ==="
-          ls -l "${ANDROID_SDK_ROOT}/platform-tools/adb"
-
-          echo "=== jarsigner ==="
-          which jarsigner
-
-          echo "=== /tmp/release.keystore ==="
+          echo "--- /tmp/release.keystore ---"
           ls -l /tmp/release.keystore
 
-          echo "=== export_presets.cfg keystore section ==="
+          echo "--- export_presets.cfg keystore section ---"
           grep "keystore" "${{ env.PROJECT_PATH }}/export_presets.cfg"
 
       # ── Export ────────────────────────────────────────────────────────────
       - name: Export Android APK
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
         run: |
           mkdir -p build/android
           godot -v --headless \
