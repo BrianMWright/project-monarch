@@ -66,6 +66,17 @@ jobs:
       # Install build-tools 34 so Godot stops warning about a version mismatch.
       # Search for sdkmanager rather than hardcoding a version subdir (latest,
       # 9.0, etc. all vary between Docker image versions).
+      
+      - name: Install Missing Linux Libraries
+        run: |
+          apt-get update && apt-get install -y \
+          libfontconfig1 \
+          libxcursor1 \
+          libxinerama1 \
+          libxrandr1 \
+          libxi6 \
+          libvulkan1
+
       - name: Install Android build-tools 34
         run: |
           SDKMANAGER="$(find "${SDK_ROOT}/cmdline-tools" -name sdkmanager -type f 2>/dev/null | head -1)"
@@ -145,6 +156,11 @@ jobs:
         run: mkdir -p build/android
 
       - name: Export Android AAB
+        env:
+          # This forces Godot to use the keystore we just wrote, regardless of the .cfg file
+          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: "${{ github.workspace }}/${{ env.PROJECT_PATH }}/release.keystore"
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: "${{ secrets.ANDROID_KEY_ALIAS }}"
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: "${{ secrets.ANDROID_KEY_PASS }}"
         run: |
           godot --headless \
             --path "$GITHUB_WORKSPACE/${{ env.PROJECT_PATH }}" \
