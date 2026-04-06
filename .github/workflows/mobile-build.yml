@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: docker.io/barichello/godot-ci:4.6.2-stable
+      image: docker.io/barichello/godot-ci:4.6.2
 
     steps:
       - name: Checkout Repository
