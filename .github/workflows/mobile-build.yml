@@ -138,8 +138,7 @@ jobs:
       # This file is in .gitignore and never committed.
       - name: Write release keystore
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode \
-            > "${{ env.PROJECT_PATH }}/release.keystore"
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "${{ env.PROJECT_PATH }}/release.keystore"
 
       # Replace the CI_KEY_ALIAS / CI_KEY_PASS placeholders committed in
       # export_presets.cfg with the real secret values.
@@ -164,18 +163,17 @@ jobs:
 
       - name: Export Android AAB
         env:
-          # Use the SDK root discovered in your earlier "Locate Android SDK" step
           ANDROID_HOME: ${{ env.SDK_ROOT }}
-          # These 3 variables tell Godot to IGNORE the .cfg settings for keystores
-          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: "${{ github.workspace }}/${{ env.PROJECT_PATH }}/release.keystore"
+          # Use the relative path from the repo root
+          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: "${{ env.PROJECT_PATH }}/release.keystore"
           GODOT_ANDROID_KEYSTORE_RELEASE_USER: "${{ secrets.ANDROID_KEY_ALIAS }}"
           GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: "${{ secrets.ANDROID_KEY_PASS }}"
         run: |
-          # Added -v for Verbose logging so we can see the real error if it fails
+          mkdir -p build/android
           godot -v --headless \
-            --path "$GITHUB_WORKSPACE/${{ env.PROJECT_PATH }}" \
+            --path "${{ env.PROJECT_PATH }}" \
             --export-release "Android" \
-            "$GITHUB_WORKSPACE/build/android/MonarchGame.apk"
+            "build/android/MonarchGame.apk"
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
