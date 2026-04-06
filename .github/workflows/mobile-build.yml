@@ -156,14 +156,23 @@ jobs:
       - name: Create output directory
         run: mkdir -p build/android
 
+      - name: Debug Environment
+        run: |
+          ls -R "${{ github.workspace }}/src/monarch-game"
+          echo "Checking for keystore:"
+          ls -l "${{ github.workspace }}/src/monarch-game/release.keystore"
+
       - name: Export Android AAB
         env:
-          # This forces Godot to use the keystore we just wrote, regardless of the .cfg file
+          # Use the SDK root discovered in your earlier "Locate Android SDK" step
+          ANDROID_HOME: ${{ env.SDK_ROOT }}
+          # These 3 variables tell Godot to IGNORE the .cfg settings for keystores
           GODOT_ANDROID_KEYSTORE_RELEASE_PATH: "${{ github.workspace }}/${{ env.PROJECT_PATH }}/release.keystore"
           GODOT_ANDROID_KEYSTORE_RELEASE_USER: "${{ secrets.ANDROID_KEY_ALIAS }}"
           GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: "${{ secrets.ANDROID_KEY_PASS }}"
         run: |
-          godot --headless \
+          # Added -v for Verbose logging so we can see the real error if it fails
+          godot -v --headless \
             --path "$GITHUB_WORKSPACE/${{ env.PROJECT_PATH }}" \
             --export-release "Android" \
             "$GITHUB_WORKSPACE/build/android/MonarchGame.apk"
