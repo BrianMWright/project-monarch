@@ -69,13 +69,14 @@ jobs:
       
       - name: Install Missing Linux Libraries
         run: |
-          apt-get update && apt-get install -y \
-          libfontconfig1 \
-          libxcursor1 \
-          libxinerama1 \
-          libxrandr1 \
-          libxi6 \
-          libvulkan1
+          apt-get update
+          apt-get install -y \
+            libfontconfig1 \
+            libxcursor1 \
+            libxinerama1 \
+            libxi6 \
+            libvulkan1 \
+            libxrandr-dev || apt-get install -y libxrandr2
 
       - name: Install Android build-tools 34
         run: |
