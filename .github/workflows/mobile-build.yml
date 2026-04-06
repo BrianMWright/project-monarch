@@ -134,22 +134,39 @@ jobs:
           "${ADB}" start-server
 
       # ── Keystore ──────────────────────────────────────────────────────────
-      # Written to res:// (project root) so export_presets.cfg can resolve it.
-      # This file is in .gitignore and never committed.
-      - name: Write release keystore
+      # Written to /tmp (absolute path) so Godot can find it without res://
+      # resolution, which is unreliable inside a Docker container.
+      - name: Write and verify release keystore
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "${{ env.PROJECT_PATH }}/release.keystore"
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > /tmp/release.keystore
+          # Verify the keystore decoded correctly — fails fast if base64 is bad.
+          keytool -list \
+            -keystore /tmp/release.keystore \
+            -storepass "${{ secrets.ANDROID_KEY_PASS }}" \
+            -noprompt
+          echo "Keystore OK — $(stat -c%s /tmp/release.keystore) bytes"
 
-      # Replace the CI_KEY_ALIAS / CI_KEY_PASS placeholders committed in
-      # export_presets.cfg with the real secret values.
-      - name: Inject keystore credentials
+      # Patch export_presets.cfg:
+      #   1. Point keystore/release at the absolute /tmp path.
+      #   2. Replace CI_KEY_ALIAS / CI_KEY_PASS placeholders with real secrets.
+      - name: Inject keystore path and credentials
         run: |
+          sed -i \
+            's|keystore/release="res://release.keystore"|keystore/release="/tmp/release.keystore"|g' \
+            "${{ env.PROJECT_PATH }}/export_presets.cfg"
           sed -i \
             "s|CI_KEY_ALIAS|${{ secrets.ANDROID_KEY_ALIAS }}|g" \
             "${{ env.PROJECT_PATH }}/export_presets.cfg"
           sed -i \
             "s|CI_KEY_PASS|${{ secrets.ANDROID_KEY_PASS }}|g" \
             "${{ env.PROJECT_PATH }}/export_presets.cfg"
+          # Fail loudly if any placeholder survived (secret not set / wrong name).
+          if grep -qE "CI_KEY_ALIAS|CI_KEY_PASS" "${{ env.PROJECT_PATH }}/export_presets.cfg"; then
+            echo "ERROR: Placeholder not replaced — check ANDROID_KEY_ALIAS / ANDROID_KEY_PASS secrets."
+            exit 1
+          fi
+          echo "export_presets.cfg keystore lines:"
+          grep "keystore/" "${{ env.PROJECT_PATH }}/export_presets.cfg"
 
       # ── Export ────────────────────────────────────────────────────────────
       - name: Create output directory
@@ -165,12 +182,7 @@ jobs:
 
       - name: Export Android AAB
         env:
-          # Use the discovered SDK root
           ANDROID_HOME: ${{ env.SDK_ROOT }}
-          # Relative paths work best here since we are already in the workspace
-          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: "${{ env.PROJECT_PATH }}/release.keystore"
-          GODOT_ANDROID_KEYSTORE_RELEASE_USER: "${{ secrets.ANDROID_KEY_ALIAS }}"
-          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: "${{ secrets.ANDROID_KEY_PASS }}"
         run: |
           mkdir -p build/android
           # We use -v to catch any remaining hidden errors
