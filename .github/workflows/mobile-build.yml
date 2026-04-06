@@ -39,7 +39,10 @@ jobs:
           if [ -f /root/.config/godot/editor_settings-4.tres ]; then
             cp /root/.config/godot/editor_settings-4.tres ~/.config/godot/editor_settings-4.tres
           fi
-
+      
+      - name: Install Python
+        run: apt-get update && apt-get install -y python3
+        
       - name: Prepare keystores
         run: |
           mkdir -p "${PROJECT_PATH}"
