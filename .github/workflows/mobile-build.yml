@@ -163,13 +163,15 @@ jobs:
 
       - name: Export Android AAB
         env:
+          # Use the discovered SDK root
           ANDROID_HOME: ${{ env.SDK_ROOT }}
-          # Use the relative path from the repo root
+          # Relative paths work best here since we are already in the workspace
           GODOT_ANDROID_KEYSTORE_RELEASE_PATH: "${{ env.PROJECT_PATH }}/release.keystore"
           GODOT_ANDROID_KEYSTORE_RELEASE_USER: "${{ secrets.ANDROID_KEY_ALIAS }}"
           GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: "${{ secrets.ANDROID_KEY_PASS }}"
         run: |
           mkdir -p build/android
+          # We use -v to catch any remaining hidden errors
           godot -v --headless \
             --path "${{ env.PROJECT_PATH }}" \
             --export-release "Android" \
