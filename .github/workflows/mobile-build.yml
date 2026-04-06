@@ -136,13 +136,13 @@ jobs:
           godot --headless \
             --path "$GITHUB_WORKSPACE/${{ env.PROJECT_PATH }}" \
             --export-release "Android" \
-            "$GITHUB_WORKSPACE/build/android/MonarchGame.aab"
+            "$GITHUB_WORKSPACE/build/android/MonarchGame.apk"
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MonarchGame-android-aab
-          path: build/android/MonarchGame.aab
+          name: MonarchGame-android-apk
+          path: build/android/MonarchGame.apk
           retention-days: 30
 
 # ── iOS job removed — restore from git history when Apple Developer Program
