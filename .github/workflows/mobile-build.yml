@@ -74,18 +74,39 @@ jobs:
           echo "Android templates installed:"
           ls "${TEMPLATES_DIR}/" | grep android
 
-      - name: Write Godot editor settings
+      - name: Locate Android SDK and write Godot editor settings
         run: |
+          # Discover the real SDK root — env vars differ across image versions.
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          if [ -z "${SDK_ROOT}" ]; then
+            SDK_ROOT="$(dirname "$(dirname "$(find /root /usr/local /opt -name 'adb' -type f 2>/dev/null | head -1)")")"
+          fi
+          echo "SDK_ROOT=${SDK_ROOT}"
+
           # Find the JDK home — resolves symlinks so Godot gets the real path.
           JAVA_PATH="$(readlink -f "$(which java)" | sed 's|/bin/java||')"
+          echo "JAVA_PATH=${JAVA_PATH}"
+
+          # Locate the debug keystore the image pre-generates.
+          DEBUG_KS="$(find /root /github -name 'debug.keystore' -type f 2>/dev/null | head -1)"
+          DEBUG_KS="${DEBUG_KS:-/root/.android/debug.keystore}"
+          echo "DEBUG_KS=${DEBUG_KS}"
+
           mkdir -p "${HOME}/.config/godot"
-          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "/root/android-sdk"\nexport/android/java_sdk_path = "%s"\nexport/android/debug_keystore = "/root/.android/debug.keystore"\nexport/android/debug_keystore_user = "androiddebugkey"\nexport/android/debug_keystore_pass = "android"\n' \
-            "${JAVA_PATH}" > "${HOME}/.config/godot/editor_settings-4.tres"
+          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/java_sdk_path = "%s"\nexport/android/debug_keystore = "%s"\nexport/android/debug_keystore_user = "androiddebugkey"\nexport/android/debug_keystore_pass = "android"\n' \
+            "${SDK_ROOT}" "${JAVA_PATH}" "${DEBUG_KS}" \
+            > "${HOME}/.config/godot/editor_settings-4.tres"
           echo "=== editor_settings-4.tres ==="
           cat "${HOME}/.config/godot/editor_settings-4.tres"
 
+          # Persist SDK_ROOT for the ADB step.
+          echo "SDK_ROOT=${SDK_ROOT}" >> "${GITHUB_ENV}"
+
       - name: Start ADB daemon
-        run: /root/android-sdk/platform-tools/adb start-server
+        run: |
+          ADB="${SDK_ROOT}/platform-tools/adb"
+          echo "Starting ADB at: ${ADB}"
+          "${ADB}" start-server
 
       # ── Keystore ──────────────────────────────────────────────────────────
       # Written to res:// (project root) so export_presets.cfg can resolve it.
