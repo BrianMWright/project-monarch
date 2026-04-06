@@ -156,7 +156,7 @@ jobs:
           mkdir -p build/android
           godot -v --headless \
             --path "${{ env.PROJECT_PATH }}" \
-            --export-debug "Android" \
+            --export-release "Android" \
             "build/android/MonarchGame.apk"
 
       - name: Upload APK artifact
