@@ -63,16 +63,17 @@ jobs:
       # under /root — Godot won't find them. We re-install/re-write everything
       # under $HOME so both GitHub Actions and Godot agree on the same path.
 
-      # Install build-tools 34 to match target_sdk=34 in export_presets.cfg.
-      # The Docker image ships 33.0.2; Godot 4.6 defaults to SDK 34 and fails
-      # validation when the build tools version doesn't match.
+      # Install build-tools 34 so Godot stops warning about a version mismatch.
+      # Search for sdkmanager rather than hardcoding a version subdir (latest,
+      # 9.0, etc. all vary between Docker image versions).
       - name: Install Android build-tools 34
         run: |
-          SDKMANAGER="${SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
-          if [ -f "${SDKMANAGER}" ]; then
+          SDKMANAGER="$(find "${SDK_ROOT}/cmdline-tools" -name sdkmanager -type f 2>/dev/null | head -1)"
+          if [ -n "${SDKMANAGER}" ]; then
+            echo "Found sdkmanager at: ${SDKMANAGER}"
             echo "yes" | "${SDKMANAGER}" "build-tools;34.0.0" "platforms;android-34"
           else
-            echo "sdkmanager not found at ${SDKMANAGER}, skipping"
+            echo "sdkmanager not found under ${SDK_ROOT}/cmdline-tools — skipping"
           fi
 
       - name: Install export templates
