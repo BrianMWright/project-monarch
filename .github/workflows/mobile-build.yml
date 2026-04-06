@@ -1,9 +1,11 @@
 # mobile-build.yml
 # Builds a signed Android .apk on every push to main.
 #
-# Uses barichello/godot-ci:4.6 — Godot, Android SDK, and JDK are bundled.
-# Export templates are downloaded fresh because GitHub Actions sets $HOME to
-# /github/home inside containers, not /root where the image stores them.
+# The barichello/godot-ci image ships Android build-tools 33.0.2.
+# Godot 4.6 requires build-tools 35.0.1 (and the Godot docs explicitly warn
+# against distro-packaged Android SDKs on Linux). We install a clean SDK at
+# /opt/android-sdk with the exact packages Godot 4.6 expects, ignoring
+# anything the container ships.
 #
 # ── Required GitHub Secrets ────────────────────────────────────────────────
 #
@@ -14,7 +16,7 @@
 #
 # ── One-time local setup ───────────────────────────────────────────────────
 #  1. Godot editor → Project → Export → Android preset,
-#     set bundle ID to com.monarchgame.app, save (updates export_presets.cfg).
+#     bundle ID = com.monarchgame.app, save (updates export_presets.cfg).
 #  2. Generate a release keystore:
 #     keytool -genkey -v -keystore release.keystore -alias monarch \
 #       -keyalg RSA -keysize 2048 -validity 10000
@@ -32,6 +34,8 @@ on:
 env:
   GODOT_VERSION: "4.6"
   PROJECT_PATH: src/monarch-game
+  # Clean SDK path — deliberately separate from whatever the image ships.
+  ANDROID_SDK_ROOT: /opt/android-sdk
 
 jobs:
   build-android:
@@ -41,16 +45,10 @@ jobs:
       image: barichello/godot-ci:4.6
 
     steps:
-      # ── Checkout ────────────────────────────────────────────────────────
-      # v5 targets Node 24. v4.x targets Node 20, which GitHub is retiring;
-      # the deprecated runtime causes git to exit 128 inside containers.
       - name: Checkout
         uses: actions/checkout@v5
 
-      # ── System libraries ─────────────────────────────────────────────────
-      # Godot headless needs fontconfig + X11 stubs even with --headless.
-      # python3 is used for safe keystore injection (avoids shell
-      # special-character expansion that silently breaks sed-based injection).
+      # ── System libraries ──────────────────────────────────────────────────
       - name: Install system libraries
         run: |
           apt-get update -qq
@@ -61,12 +59,64 @@ jobs:
             libxi6 \
             libvulkan1 \
             python3 \
+            unzip \
+            wget \
             libxrandr-dev || apt-get install -y libxrandr2
 
-      # ── Export templates ─────────────────────────────────────────────────
-      # Downloaded fresh into $HOME so Godot and GitHub Actions see the same
-      # path. The image's own templates live under /root, which is not $HOME
-      # inside a GitHub Actions container job.
+      # ── Fresh Android SDK ─────────────────────────────────────────────────
+      # Installs the exact packages Godot 4.6 requires:
+      #   build-tools 35.0.1, platforms;android-35, platform-tools,
+      #   CMake 3.10.2.4988404, NDK r28b (28.1.13356709)
+      #
+      # NOTE: NDK r28b is ~2 GB; this step takes several minutes.
+      # If build time is a concern and your project has no GDExtension
+      # native code, you can drop the ndk line — it is only strictly required
+      # for Gradle builds with C++ plugins.
+      - name: Install Android SDK
+        run: |
+          SDK="${ANDROID_SDK_ROOT}"
+          mkdir -p "${SDK}/cmdline-tools"
+
+          # Download Android command-line tools (build 11076708 = tools 11.0).
+          # Update this version number when Google releases a newer build.
+          wget -q \
+            "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
+            -O /tmp/cmdline-tools.zip
+          unzip -q /tmp/cmdline-tools.zip -d /tmp/cmdline-tools-extract
+          # The zip unpacks a single "cmdline-tools/" directory; place it at
+          # cmdline-tools/latest so sdkmanager resolves packages correctly.
+          mv /tmp/cmdline-tools-extract/cmdline-tools "${SDK}/cmdline-tools/latest"
+
+          SDKMANAGER="${SDK}/cmdline-tools/latest/bin/sdkmanager"
+
+          # Pre-accept all licenses (two methods for reliability).
+          mkdir -p "${SDK}/licenses"
+          printf '%s\n' \
+            '24333f8a63b6825ea9c5514f83c2829b004d1fee' \
+            > "${SDK}/licenses/android-sdk-license"
+          printf '%s\n' \
+            '84831b9409646a918e30573bab4c9c91346d8abd' \
+            > "${SDK}/licenses/android-sdk-preview-license"
+          yes | "${SDKMANAGER}" --licenses > /dev/null 2>&1 || true
+
+          # Install exact packages required by Godot 4.6.
+          "${SDKMANAGER}" \
+            "build-tools;35.0.1" \
+            "platforms;android-35" \
+            "platform-tools" \
+            "cmake;3.10.2.4988404" \
+            "ndk;28.1.13356709"
+
+          echo "=== Installed SDK layout ==="
+          ls "${SDK}/build-tools/"
+          ls -l "${SDK}/platform-tools/adb"
+
+          # Persist for all downstream steps.
+          echo "ANDROID_SDK_ROOT=${SDK}" >> "${GITHUB_ENV}"
+
+      # ── Export templates ──────────────────────────────────────────────────
+      # $HOME inside a GitHub Actions container is /github/home, not /root.
+      # Download fresh templates into the real $HOME so Godot finds them.
       - name: Install export templates
         run: |
           TEMPLATES_DIR="${HOME}/.local/share/godot/export_templates/4.6.stable"
@@ -76,85 +126,20 @@ jobs:
             -O /tmp/templates.tpz
           unzip -q /tmp/templates.tpz -d /tmp/templates_extract
           mv /tmp/templates_extract/templates/* "${TEMPLATES_DIR}/"
-          echo "Android templates present:"
+          echo "Android templates installed:"
           ls "${TEMPLATES_DIR}/" | grep android
 
-      # ── Android SDK discovery and editor settings ─────────────────────────
-      # Do not require any specific env var. Probe in order:
-      #   1. ANDROID_SDK_ROOT  (some image versions)
-      #   2. ANDROID_HOME      (most image versions)
-      #   3. adb on PATH       (resolves parent dirs)
-      #   4. filesystem search (last resort)
-      #
-      # The barichello image ships platform-tools as "platform-tools-2".
-      # Godot validates the SDK by checking platform-tools/adb, so we create
-      # the standard symlink when the canonical directory is missing.
-      - name: Configure Android SDK paths
+      # ── Godot editor settings ─────────────────────────────────────────────
+      - name: Write Godot editor settings
         run: |
-          SDK_ROOT=""
-
-          if [ -n "${ANDROID_SDK_ROOT:-}" ]; then
-            SDK_ROOT="${ANDROID_SDK_ROOT}"
-            echo "Detected SDK_ROOT from ANDROID_SDK_ROOT"
-          elif [ -n "${ANDROID_HOME:-}" ]; then
-            SDK_ROOT="${ANDROID_HOME}"
-            echo "Detected SDK_ROOT from ANDROID_HOME"
-          else
-            ADB_PATH="$(command -v adb 2>/dev/null || true)"
-            if [ -n "${ADB_PATH}" ]; then
-              SDK_ROOT="$(dirname "$(dirname "$(readlink -f "${ADB_PATH}")")")"
-              echo "Detected SDK_ROOT from adb on PATH (${ADB_PATH})"
-            else
-              ADB_PATH="$(find /usr /opt /root -maxdepth 6 \
-                            -name 'adb' -type f 2>/dev/null | head -1)"
-              if [ -n "${ADB_PATH}" ]; then
-                SDK_ROOT="$(dirname "$(dirname "${ADB_PATH}")")"
-                echo "Detected SDK_ROOT from filesystem search"
-              fi
-            fi
-          fi
-
-          if [ -z "${SDK_ROOT}" ]; then
-            echo "ERROR: Cannot detect Android SDK root. No adb found and no SDK env var set."
-            exit 1
-          fi
-          echo "SDK_ROOT=${SDK_ROOT}"
-
-          # Fix inconsistent platform-tools directory name in the image.
-          if [ ! -d "${SDK_ROOT}/platform-tools" ]; then
-            if [ -d "${SDK_ROOT}/platform-tools-2" ]; then
-              echo "Symlinking platform-tools-2 → platform-tools"
-              ln -s "${SDK_ROOT}/platform-tools-2" "${SDK_ROOT}/platform-tools"
-            else
-              echo "WARNING: neither platform-tools nor platform-tools-2 found."
-            fi
-          fi
-
-          # Confirm adb is reachable at the canonical path.
-          ADB="${SDK_ROOT}/platform-tools/adb"
-          if [ ! -f "${ADB}" ]; then
-            ADB="$(find "${SDK_ROOT}" -name 'adb' -type f 2>/dev/null | head -1)"
-          fi
-          if [ -z "${ADB}" ]; then
-            echo "ERROR: adb not found anywhere under ${SDK_ROOT}"
-            exit 1
-          fi
-          echo "ADB=${ADB}"
-
-          # Resolve the real JDK home (follow symlinks).
+          SDK="${ANDROID_SDK_ROOT}"
           JAVA_PATH="$(readlink -f "$(which java)" | sed 's|/bin/java||')"
-          echo "JAVA_PATH=${JAVA_PATH}"
+          DEBUG_KS="${HOME}/.android/debug.keystore"
 
-          # Debug keystore — only needed for debug builds, not release.
-          DEBUG_KS="$(find /root /github "${HOME}" -name 'debug.keystore' \
-                        -type f 2>/dev/null | head -1)"
-          DEBUG_KS="${DEBUG_KS:-${HOME}/.android/debug.keystore}"
-
-          # Write editor settings under the real $HOME.
           mkdir -p "${HOME}/.config/godot"
           {
             printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\n'
-            printf 'export/android/android_sdk_path = "%s"\n' "${SDK_ROOT}"
+            printf 'export/android/android_sdk_path = "%s"\n' "${SDK}"
             printf 'export/android/java_sdk_path = "%s"\n'    "${JAVA_PATH}"
             printf 'export/android/debug_keystore = "%s"\n'   "${DEBUG_KS}"
             printf 'export/android/debug_keystore_user = "androiddebugkey"\n'
@@ -164,18 +149,16 @@ jobs:
           echo "=== editor_settings-4.tres ==="
           cat "${HOME}/.config/godot/editor_settings-4.tres"
 
-          # Persist for downstream steps.
-          printf 'SDK_ROOT=%s\n' "${SDK_ROOT}" >> "${GITHUB_ENV}"
-          printf 'ADB=%s\n'      "${ADB}"      >> "${GITHUB_ENV}"
-
       - name: Start ADB daemon
         run: |
+          ADB="${ANDROID_SDK_ROOT}/platform-tools/adb"
           echo "Starting ADB: ${ADB}"
           "${ADB}" start-server
 
-      # ── Keystore ────────────────────────────────────────────────────────
-      # Written to /tmp (absolute path) because res:// resolution is
-      # unreliable inside Docker containers when --path is relative.
+      # ── Keystore ──────────────────────────────────────────────────────────
+      # Written to /tmp so Godot resolves it via an absolute path.
+      # res://release.keystore is unreliable inside Docker containers because
+      # res:// is relative to --path which may differ from the write CWD.
       - name: Write and verify release keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" \
@@ -186,8 +169,8 @@ jobs:
             -noprompt
           echo "Keystore OK — $(stat -c%s /tmp/release.keystore) bytes"
 
-      # Python str.replace() handles passwords that contain $, !, & or other
-      # characters that shell-based sed would silently mangle.
+      # Python str.replace() handles passwords containing $, !, & — characters
+      # that shell-based sed silently mangles when expanded inside double quotes.
       - name: Inject keystore path and credentials
         env:
           _KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -216,26 +199,24 @@ jobs:
           echo "=== keystore lines in export_presets.cfg ==="
           grep "keystore/" "${{ env.PROJECT_PATH }}/export_presets.cfg"
 
-      # ── Pre-export diagnostics ───────────────────────────────────────────
+      # ── Pre-export diagnostics ────────────────────────────────────────────
       - name: Pre-export diagnostics
         run: |
           echo "=== Android export templates ==="
           ls "${HOME}/.local/share/godot/export_templates/4.6.stable/" \
             | grep -i android
 
-          echo "=== Build-tools versions present ==="
-          ls "${SDK_ROOT}/build-tools/" 2>/dev/null \
-            || echo "WARNING: no build-tools directory found"
+          echo "=== Build-tools versions installed ==="
+          ls "${ANDROID_SDK_ROOT}/build-tools/"
 
-          echo "=== apksigner ==="
-          find "${SDK_ROOT}/build-tools" -name "apksigner" 2>/dev/null | head -3
+          echo "=== apksigner (in build-tools 35.0.1) ==="
+          ls -l "${ANDROID_SDK_ROOT}/build-tools/35.0.1/apksigner"
 
           echo "=== platform-tools/adb ==="
-          ls -l "${SDK_ROOT}/platform-tools/adb" 2>/dev/null \
-            || echo "WARNING: adb not at expected path"
+          ls -l "${ANDROID_SDK_ROOT}/platform-tools/adb"
 
           echo "=== jarsigner ==="
-          which jarsigner 2>/dev/null || echo "WARNING: jarsigner not found"
+          which jarsigner
 
           echo "=== /tmp/release.keystore ==="
           ls -l /tmp/release.keystore
@@ -243,10 +224,10 @@ jobs:
           echo "=== export_presets.cfg keystore section ==="
           grep "keystore" "${{ env.PROJECT_PATH }}/export_presets.cfg"
 
-      # ── Export ──────────────────────────────────────────────────────────
+      # ── Export ────────────────────────────────────────────────────────────
       - name: Export Android APK
         env:
-          ANDROID_HOME: ${{ env.SDK_ROOT }}
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
         run: |
           mkdir -p build/android
           godot -v --headless \
@@ -261,6 +242,5 @@ jobs:
           path: build/android/MonarchGame.apk
           retention-days: 30
 
-# ── iOS ──────────────────────────────────────────────────────────────────
-# Restore from git history when Apple Developer Program is active and
-# IOS_ secrets have been added to the repository.
+# ── iOS ───────────────────────────────────────────────────────────────────
+# Restore from git history when Apple Developer Program is active.
