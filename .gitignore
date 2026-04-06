@@ -1,3 +1,6 @@
+# macOS resource forks (AppleDouble files)
+._*
+
 # Godot 4+ specific ignores
 .godot/
 .nomedia
@@ -26,4 +29,3 @@ build/
 
 # Xcode export options plist — generated inline by the CI workflow.
 ExportOptions.plist
-release.keystore
