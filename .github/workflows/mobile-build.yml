@@ -58,7 +58,7 @@ jobs:
             printf 'export/android/debug_keystore = "%s/.android/debug.keystore"\n' "${HOME}"
             printf 'export/android/debug_keystore_user = "androiddebugkey"\n'
             printf 'export/android/debug_keystore_pass = "android"\n'
-          } > "${HOME}/.config/godot/editor_settings-4.tres"
+          } > "${HOME}/.config/godot/editor_settings-4.6.tres"
 
       - name: Create Debug Keystore
         run: |
@@ -107,7 +107,7 @@ jobs:
           test -f "${ANDROID_HOME}/build-tools/35.0.1/aapt2" && echo "aapt2: OK" || echo "aapt2: MISSING"
           echo ""
           echo "=== Editor Settings ==="
-          cat "${HOME}/.config/godot/editor_settings-4.tres"
+          cat "${HOME}/.config/godot/editor_settings-4.6.tres"
           echo ""
           echo "=== Export Preset (gradle_build + keystore + package) ==="
           grep -E "^(gradle_build/|keystore/|package/)" "${{ env.PROJECT_PATH }}/export_presets.cfg" | head -20
