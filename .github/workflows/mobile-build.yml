@@ -76,6 +76,7 @@ jobs:
             libxinerama1 \
             libxi6 \
             libvulkan1 \
+            python3 \
             libxrandr-dev || apt-get install -y libxrandr2
 
       - name: Install Android build-tools 34
