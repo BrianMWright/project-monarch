@@ -141,6 +141,11 @@ jobs:
           grep -E "^(keystore/|gradle_build/|package/signed|package/export_format)" "${PROJECT_PATH}/export_presets.cfg" | head -20
 
       
+      - name: Verify preset
+        run: |
+          echo "=== VERIFY PRESET ==="
+          sed -n '/\[preset\.0\]/,/\[preset\.1\]/p' "${PROJECT_PATH}/export_presets.cfg"
+      
       - name: Export Android APK
         run: |
           mkdir -p build/android
