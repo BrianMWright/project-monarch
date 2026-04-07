@@ -134,6 +134,11 @@ jobs:
           echo "=== Export Preset (critical fields) ==="
           grep -E "^(keystore/|gradle_build/|package/signed|package/export_format)" "${PROJECT_PATH}/export_presets.cfg" | head -20
 
+      - name: Start ADB
+        run: |
+          adb start-server
+          adb devices
+      
       - name: Export Android APK
         run: |
           mkdir -p build/android
