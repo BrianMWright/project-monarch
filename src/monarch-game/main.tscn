@@ -1,92 +1,21 @@
 [gd_scene format=3 uid="uid://b6ivqfgsffvyi"]
 
-[ext_resource type="Script" uid="uid://vrl3t6rn8fpt" path="res://main.gd" id="1_h2yge"]
-[ext_resource type="Script" uid="uid://dcbqtmwlajuih" path="res://Player.gd" id="2_1bvp3"]
-[ext_resource type="Script" uid="uid://dhwsea0omd264" path="res://BoardData.gd" id="3_lquwl"]
-[ext_resource type="Script" uid="uid://bx3dpf7qk2vwn" path="res://DiceRoller.gd" id="4_droll"]
-
-[sub_resource type="Resource" id="Resource_7mycd"]
-script = ExtResource("3_lquwl")
-metadata/_custom_type_script = "uid://dhwsea0omd264"
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
-bg_color = Color(0.08, 0.08, 0.18, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn"]
-bg_color = Color(0.2, 0.5, 1.0, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_left = 12
-corner_radius_bottom_right = 12
-
 [node name="Main" type="Control"]
-layout_mode = 3
-anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-script = ExtResource("1_h2yge")
 
 [node name="Background" type="ColorRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.8, 0.0, 0.0, 1)
+color = Color(0.7, 0.0, 0.0, 1.0)
 
-[node name="DiceRoller" type="Node" parent="."]
-script = ExtResource("4_droll")
-
-[node name="Player" type="Node" parent="."]
-script = ExtResource("2_1bvp3")
-board_data = SubResource("Resource_7mycd")
-
-[node name="LabelVersion" type="Label" parent="."]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.0
-anchor_top = 0.02
-anchor_right = 1.0
-anchor_bottom = 0.1
-text = "Project Monarch  α 0.1.0"
-horizontal_alignment = 1
-theme_override_colors/font_color = Color(0.6, 0.6, 0.8, 1)
-theme_override_font_sizes/font_size = 28
-
-[node name="LabelTile" type="Label" parent="."]
-layout_mode = 1
-anchors_preset = -1
+[node name="StatusLabel" type="Label" parent="."]
 anchor_left = 0.05
-anchor_top = 0.18
+anchor_top = 0.35
 anchor_right = 0.95
-anchor_bottom = 0.3
-text = "Tile: —"
+anchor_bottom = 0.65
+text = "RENDER OK"
 horizontal_alignment = 1
+vertical_alignment = 1
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 40
-
-[node name="LabelRoll" type="Label" parent="."]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.05
-anchor_top = 0.33
-anchor_right = 0.95
-anchor_bottom = 0.45
-text = "Roll: —"
-horizontal_alignment = 1
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 40
-
-[node name="ButtonRoll" type="Button" parent="."]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.1
-anchor_top = 0.78
-anchor_right = 0.9
-anchor_bottom = 0.9
-text = "Roll Dice"
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 44
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
-theme_override_styles/hover = SubResource("StyleBoxFlat_btn")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_btn")
-theme_override_styles/focus = SubResource("StyleBoxFlat_btn")
+theme_override_font_sizes/font_size = 60
