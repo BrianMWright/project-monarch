@@ -90,13 +90,13 @@ jobs:
 
       - name: Export Android APK
         run: |
-          mkdir -p build/android
+          mkdir -p "${GITHUB_WORKSPACE}/build/android"
           godot --headless --verbose \
             --path "${PROJECT_PATH}" \
             --export-release "Android" \
-            "build/android/${EXPORT_NAME}.apk" \
+            "${GITHUB_WORKSPACE}/build/android/${EXPORT_NAME}.apk" \
             2>&1 | tee /tmp/godot-export.log
-          if [ ! -f "build/android/${EXPORT_NAME}.apk" ]; then
+          if [ ! -f "${GITHUB_WORKSPACE}/build/android/${EXPORT_NAME}.apk" ]; then
             echo "ERROR: APK was not produced"
             exit 1
           fi
@@ -116,5 +116,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: monarchgame-android-apk
-          path: build/android/${{ env.EXPORT_NAME }}.apk
+          path: ${{ github.workspace }}/build/android/${{ env.EXPORT_NAME }}.apk
           retention-days: 30
