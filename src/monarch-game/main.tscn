@@ -13,8 +13,8 @@ metadata/_custom_type_script = "uid://dhwsea0omd264"
 script = ExtResource("1_h2yge")
 
 [node name="Label" type="Label" parent="." unique_id=240966808]
-offset_right = 40.0
-offset_bottom = 23.0
+offset_right = 440.0
+offset_bottom = 40.0
 text = "Project Monarch: Alpha 0.1.0"
 
 [node name="DiceRoller" type="Node" parent="." unique_id=3847261905]
