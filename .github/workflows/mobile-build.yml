@@ -22,50 +22,20 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5
-  
-      - name: Setup Godot paths
-        run: |
-          mkdir -p "${HOME}/.local/share/godot/export_templates"
-          mkdir -p "${HOME}/.config/godot"
 
-          if [ -d "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" ]; then
-            cp -r "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" \
-              "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
-          fi
-
-          if [ -f /root/.config/godot/editor_settings-4.6.tres ]; then
-            cp /root/.config/godot/editor_settings-4.6.tres "${HOME}/.config/godot/editor_settings-4.6.tres"
-          fi
-
-          if [ -f /root/.config/godot/editor_settings-4.tres ]; then
-            cp /root/.config/godot/editor_settings-4.tres "${HOME}/.config/godot/editor_settings-4.tres"
-          fi
-
-          echo "=== TEMPLATE CHECK ==="
-          ls -la "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable" || true
-      
       - name: Copy Export Templates from Image
         run: |
           mkdir -p "${HOME}/.local/share/godot/export_templates"
-          if [ -d "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" ]; then
-            cp -r "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" \
-              "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
-          fi
-          echo "Templates copied:"
-          ls "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable/" | head -5
+          cp -r "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" \
+            "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
 
       - name: Install Android SDK & Java
         run: |
           apt-get update
           apt-get install -y openjdk-17-jdk-headless python3 wget unzip libfontconfig1
-
-          # Detect JAVA_HOME dynamically instead of hardcoding
           DETECTED_JAVA_HOME=$(dirname $(dirname $(readlink -f $(which javac))))
-          echo "Detected JAVA_HOME: ${DETECTED_JAVA_HOME}"
           echo "JAVA_HOME=${DETECTED_JAVA_HOME}" >> $GITHUB_ENV
           export JAVA_HOME="${DETECTED_JAVA_HOME}"
-
-          # Install Android command-line tools
           mkdir -p "${ANDROID_HOME}/cmdline-tools"
           wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
             -O /tmp/cmdline-tools.zip
@@ -84,7 +54,8 @@ jobs:
             -storepass android -keypass android \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
-          echo "${{ secrets.SECRET_RELEASE_KEYSTORE_BASE64 }}" | base64 -d > "${PROJECT_PATH}/release.keystore"
+          echo "${{ secrets.SECRET_RELEASE_KEYSTORE_BASE64 }}" | base64 -d \
+            > "${PROJECT_PATH}/release.keystore"
 
       - name: Inject Keystore Credentials
         env:
@@ -106,12 +77,6 @@ jobs:
         run: |
           godot --headless --path "${PROJECT_PATH}" --import 2>&1 | tee /tmp/godot-import.log || true
 
-      - name: Start ADB daemon
-        run: |
-          export PATH="${ANDROID_HOME}/platform-tools:${PATH}"
-          adb start-server
-          adb devices
-      
       - name: Write Godot Editor Settings
         run: |
           mkdir -p "${HOME}/.config/godot"
@@ -123,50 +88,6 @@ jobs:
             printf 'export/android/debug_keystore_pass = "android"\n'
           } > "${HOME}/.config/godot/editor_settings-4.6.tres"
 
-      - name: Pre-export Diagnostics
-        run: |
-          echo "=== Godot Version ==="
-          godot --version 2>/dev/null || echo "Could not get version"
-          echo ""
-          echo "=== Export Templates ==="
-          ls "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable/" 2>/dev/null | head -5 || echo "MISSING"
-          echo ""
-          echo "=== JAVA_HOME ==="
-          echo "JAVA_HOME=${JAVA_HOME}"
-          test -f "${JAVA_HOME}/bin/javac" && echo "javac: OK" || echo "javac: MISSING"
-          test -f "${JAVA_HOME}/bin/jarsigner" && echo "jarsigner: OK" || echo "jarsigner: MISSING"
-          echo ""
-          echo "=== Android SDK ==="
-          echo "ANDROID_HOME=${ANDROID_HOME}"
-          test -f "${ANDROID_HOME}/build-tools/35.0.1/aapt2" && echo "aapt2: OK" || echo "aapt2: MISSING"
-          test -f "${ANDROID_HOME}/build-tools/35.0.1/d8" && echo "d8: OK" || echo "d8: MISSING"
-          test -f "${ANDROID_HOME}/build-tools/35.0.1/zipalign" && echo "zipalign: OK" || echo "zipalign: MISSING"
-          test -f "${ANDROID_HOME}/build-tools/35.0.1/apksigner" && echo "apksigner: OK" || echo "apksigner: MISSING"
-          test -f "${ANDROID_HOME}/platform-tools/adb" && echo "adb: OK" || echo "adb: MISSING"
-          test -d "${ANDROID_HOME}/platforms/android-35" && echo "platform-35: OK" || echo "platform-35: MISSING"
-          echo ""
-          echo "=== Editor Settings ==="
-          cat "${HOME}/.config/godot/editor_settings-4.6.tres"
-          echo ""
-          echo "=== Keystores ==="
-          test -f "${HOME}/.android/debug.keystore" && echo "Debug: OK" || echo "Debug: MISSING"
-          if [ -f "${PROJECT_PATH}/release.keystore" ]; then
-            SIZE=$(wc -c < "${PROJECT_PATH}/release.keystore")
-            echo "Release: OK (${SIZE} bytes)"
-            keytool -list -keystore "${PROJECT_PATH}/release.keystore" -storepass changeit 2>&1 | head -5 || true
-          else
-            echo "Release: MISSING"
-          fi
-          echo ""
-          echo "=== Export Preset (critical fields) ==="
-          grep -E "^(keystore/|gradle_build/|package/signed|package/export_format)" "${PROJECT_PATH}/export_presets.cfg" | head -20
-
-      
-      - name: Verify preset
-        run: |
-          echo "=== VERIFY PRESET ==="
-          sed -n '/\[preset\.0\]/,/\[preset\.1\]/p' "${PROJECT_PATH}/export_presets.cfg"
-      
       - name: Export Android APK
         run: |
           mkdir -p build/android
