@@ -54,24 +54,41 @@ jobs:
             -storepass android -keypass android \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
-          echo "${{ secrets.SECRET_RELEASE_KEYSTORE_BASE64 }}" | base64 -d \
-            > "${PROJECT_PATH}/release.keystore"
+          # Strip all whitespace before decoding to handle line-wrapped base64
+          echo "${{ secrets.SECRET_RELEASE_KEYSTORE_BASE64 }}" \
+            | tr -d '[:space:]' | base64 -d > "${PROJECT_PATH}/release.keystore"
+          echo "Keystore size: $(wc -c < "${PROJECT_PATH}/release.keystore") bytes"
 
       - name: Inject Keystore Credentials
         env:
           _KEY_ALIAS: ${{ secrets.SECRET_RELEASE_KEYSTORE_USER }}
           _KEY_PASS: ${{ secrets.SECRET_RELEASE_KEYSTORE_PASSWORD }}
         run: |
+          # Validate credentials against the keystore before injecting
+          echo "Validating keystore credentials..."
+          KEYTOOL_OUT=$(keytool -list \
+            -keystore "${PROJECT_PATH}/release.keystore" \
+            -storepass "${_KEY_PASS}" \
+            -alias "${_KEY_ALIAS}" 2>&1 || true)
+          if echo "${KEYTOOL_OUT}" | grep -q "^keytool error:"; then
+            echo "ERROR: keytool rejected the credentials"
+            echo "  alias set:    $([ -n "${_KEY_ALIAS}" ] && echo YES || echo NO)"
+            echo "  password set: $([ -n "${_KEY_PASS}" ] && echo YES || echo NO)"
+            echo "  keytool says: $(echo "${KEYTOOL_OUT}" | head -2)"
+            exit 1
+          fi
+          echo "Keystore credentials: VALID"
+
           python3 - <<'PYEOF'
-          import os
-          cfg = os.path.join(os.environ['PROJECT_PATH'], 'export_presets.cfg')
-          with open(cfg) as f:
-              text = f.read()
-          text = text.replace('CI_KEY_ALIAS', os.environ.get('_KEY_ALIAS', ''))
-          text = text.replace('CI_KEY_PASS', os.environ.get('_KEY_PASS', ''))
-          with open(cfg, 'w') as f:
-              f.write(text)
-          PYEOF
+import os
+cfg = os.path.join(os.environ['PROJECT_PATH'], 'export_presets.cfg')
+with open(cfg) as f:
+    text = f.read()
+text = text.replace('CI_KEY_ALIAS', os.environ.get('_KEY_ALIAS', ''))
+text = text.replace('CI_KEY_PASS', os.environ.get('_KEY_PASS', ''))
+with open(cfg, 'w') as f:
+    f.write(text)
+PYEOF
 
       - name: Import Godot Project
         run: |
