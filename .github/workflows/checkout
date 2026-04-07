@@ -22,7 +22,28 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5
+  
+      - name: Setup Godot paths
+        run: |
+          mkdir -p "${HOME}/.local/share/godot/export_templates"
+          mkdir -p "${HOME}/.config/godot"
 
+          if [ -d "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" ]; then
+            cp -r "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" \
+              "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          fi
+
+          if [ -f /root/.config/godot/editor_settings-4.6.tres ]; then
+            cp /root/.config/godot/editor_settings-4.6.tres "${HOME}/.config/godot/editor_settings-4.6.tres"
+          fi
+
+          if [ -f /root/.config/godot/editor_settings-4.tres ]; then
+            cp /root/.config/godot/editor_settings-4.tres "${HOME}/.config/godot/editor_settings-4.tres"
+          fi
+
+          echo "=== TEMPLATE CHECK ==="
+          ls -la "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable" || true
+      
       - name: Copy Export Templates from Image
         run: |
           mkdir -p "${HOME}/.local/share/godot/export_templates"
