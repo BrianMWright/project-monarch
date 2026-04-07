@@ -19,9 +19,9 @@ func _ready() -> void:
 
 	var dice_roller: DiceRoller = $DiceRoller
 	var player:      Player     = $Player
-	var button_roll: Button     = $UI/VBoxContainer/ButtonRoll
-	_label_tile                 = $UI/VBoxContainer/LabelTile
-	_label_roll                 = $UI/VBoxContainer/LabelRoll
+	var button_roll: Button     = $UI/ButtonRoll
+	_label_tile                 = $UI/LabelTile
+	_label_roll                 = $UI/LabelRoll
 
 	# --- Signal wiring -------------------------------------------------------
 

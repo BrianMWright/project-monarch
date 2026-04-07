@@ -9,13 +9,15 @@
 script = ExtResource("3_lquwl")
 metadata/_custom_type_script = "uid://dhwsea0omd264"
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn"]
+bg_color = Color(0.2, 0.5, 1.0, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+
 [node name="Main" type="Node2D" unique_id=1381037218]
 script = ExtResource("1_h2yge")
-
-[node name="Label" type="Label" parent="." unique_id=240966808]
-offset_right = 440.0
-offset_bottom = 40.0
-text = "Project Monarch: Alpha 0.1.0"
 
 [node name="DiceRoller" type="Node" parent="." unique_id=3847261905]
 script = ExtResource("4_droll")
@@ -31,24 +33,42 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0.1, 0.1, 0.2, 1)
 
-[node name="VBoxContainer" type="VBoxContainer" parent="UI" unique_id=1837462610]
+[node name="OffsetTest" type="ColorRect" parent="UI" unique_id=2222222222]
 offset_left = 40.0
-offset_top = 80.0
+offset_top = 40.0
 offset_right = 440.0
-offset_bottom = 320.0
-theme_override_constants/separation = 20
+offset_bottom = 100.0
+color = Color(1.0, 0.8, 0.0, 1)
 
-[node name="LabelTile" type="Label" parent="UI/VBoxContainer" unique_id=3746182950]
+[node name="LabelTile" type="Label" parent="UI" unique_id=3746182950]
+offset_left = 40.0
+offset_top = 120.0
+offset_right = 440.0
+offset_bottom = 170.0
 text = "Tile: —"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 32
 
-[node name="LabelRoll" type="Label" parent="UI/VBoxContainer" unique_id=2039481756]
+[node name="LabelRoll" type="Label" parent="UI" unique_id=2039481756]
+offset_left = 40.0
+offset_top = 190.0
+offset_right = 440.0
+offset_bottom = 240.0
 text = "Roll: —"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 32
 
-[node name="ButtonRoll" type="Button" parent="UI/VBoxContainer" unique_id=4129381056]
-custom_minimum_size = Vector2(0, 60)
-size_flags_horizontal = 3
+[node name="ButtonRoll" type="Button" parent="UI" unique_id=4129381056]
+offset_left = 40.0
+offset_top = 680.0
+offset_right = 440.0
+offset_bottom = 760.0
 text = "Roll Dice"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 32
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn")
