@@ -9,6 +9,8 @@ env:
   GODOT_VERSION: "4.6.2"
   PROJECT_PATH: "src/monarch-game"
   EXPORT_NAME: "MonarchGame"
+  ANDROID_HOME: /opt/android-sdk
+  JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
 
 jobs:
   export-android:
@@ -19,56 +21,108 @@ jobs:
       image: docker.io/barichello/godot-ci:4.6.2
 
     steps:
-      - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1
-
       - name: Checkout Repository
         uses: actions/checkout@v5
 
-      - name: Setup Godot paths
+      - name: Install Android SDK & Java
         run: |
-          mkdir -p ${HOME}/.local/share/godot/export_templates
-          mkdir -p ${HOME}/.config/godot
-          wget -q -P "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}" \
-            https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/export_templates/android_release.apk
+          apt-get update
+          apt-get install -y openjdk-17-jdk-headless python3 wget unzip
+          mkdir -p "${ANDROID_HOME}/cmdline-tools"
+          wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
+            -O /tmp/cmdline-tools.zip
+          unzip -q /tmp/cmdline-tools.zip -d /tmp/cmdline-extract
+          mv /tmp/cmdline-extract/cmdline-tools "${ANDROID_HOME}/cmdline-tools/latest"
+          yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" \
+            "build-tools;35.0.1" "platforms;android-35" "platform-tools"
 
-          if [ -d "/root/.local/share/godot/export_templates/${GODOT_VERSION}" ]; then
-            cp -r "/root/.local/share/godot/export_templates/${GODOT_VERSION}" \
-              "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}"
-          fi
-
-          if [ -f /root/.config/godot/editor_settings-4.6.tres ]; then
-            cp /root/.config/godot/editor_settings-4.6.tres ${HOME}/.config/godot/editor_settings-4.6.tres
-          fi
-
-          if [ -f /root/.config/godot/editor_settings-4.tres ]; then
-            cp /root/.config/godot/editor_settings-4.tres ${HOME}/.config/godot/editor_settings-4.tres
-          fi
-
-      - name: Verify preset
+      - name: Setup Keystores
         run: |
-          sed -n '/\[preset\.0\]/,/\[preset\.1\]/p' "${PROJECT_PATH}/export_presets.cfg"
+          mkdir -p /root/.android
+          keytool -genkey -v \
+            -keystore /root/.android/debug.keystore \
+            -alias androiddebugkey \
+            -storepass android -keypass android \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+          echo "${{ secrets.SECRET_RELEASE_KEYSTORE_BASE64 }}" | base64 -d > "${PROJECT_PATH}/release.keystore"
 
-      - name: Validate Release Keystore
+      - name: Inject Keystore Credentials
+        env:
+          _KEY_ALIAS: ${{ secrets.SECRET_RELEASE_KEYSTORE_USER }}
+          _KEY_PASS: ${{ secrets.SECRET_RELEASE_KEYSTORE_PASSWORD }}
         run: |
-          if [ ! -f ${HOME}/.config/godot/release_key.jks ]; then
-            echo "Keystore file not found! Ensure it's configured and committed."
-            exit 1
-          fi
+          python3 - <<'PYEOF'
+          import os
+          cfg = os.path.join(os.environ['PROJECT_PATH'], 'export_presets.cfg')
+          with open(cfg) as f:
+              text = f.read()
+          text = text.replace('CI_KEY_ALIAS', os.environ.get('_KEY_ALIAS', ''))
+          text = text.replace('CI_KEY_PASS', os.environ.get('_KEY_PASS', ''))
+          with open(cfg, 'w') as f:
+              f.write(text)
+          PYEOF
 
-      - name: Import project
+      - name: Import Godot Project
         run: |
-          godot --headless --path "${PROJECT_PATH}" --import
+          godot --headless --path "${PROJECT_PATH}" --import 2>&1 | tee /tmp/godot-import.log || true
+
+      - name: Write Godot Editor Settings
+        run: |
+          mkdir -p /root/.config/godot
+          { printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\n'
+            printf 'export/android/android_sdk_path = "%s"\n' "${ANDROID_HOME}"
+            printf 'export/android/java_sdk_path = "%s"\n' "${JAVA_HOME}"
+            printf 'export/android/debug_keystore = "/root/.android/debug.keystore"\n'
+            printf 'export/android/debug_keystore_user = "androiddebugkey"\n'
+            printf 'export/android/debug_keystore_pass = "android"\n'
+          } > /root/.config/godot/editor_settings-4.6.tres
+
+      - name: Pre-export Diagnostics
+        run: |
+          echo "=== Export Templates ==="
+          ls /root/.local/share/godot/export_templates/ 2>/dev/null || echo "No templates dir"
+          echo ""
+          echo "=== Android SDK ==="
+          test -f "${ANDROID_HOME}/build-tools/35.0.1/aapt2" && echo "aapt2: OK" || echo "aapt2: MISSING"
+          test -f "${ANDROID_HOME}/platform-tools/adb" && echo "adb: OK" || echo "adb: MISSING"
+          echo ""
+          echo "=== Editor Settings ==="
+          cat /root/.config/godot/editor_settings-4.6.tres
+          echo ""
+          echo "=== Keystores ==="
+          test -f /root/.android/debug.keystore && echo "Debug: OK" || echo "Debug: MISSING"
+          test -f "${PROJECT_PATH}/release.keystore" && echo "Release: OK ($(wc -c < "${PROJECT_PATH}/release.keystore") bytes)" || echo "Release: MISSING"
+          echo ""
+          echo "=== Export Preset (critical fields) ==="
+          grep -E "^(keystore/|gradle_build/|package/signed|package/export_format)" "${PROJECT_PATH}/export_presets.cfg" | head -20
 
       - name: Export Android APK
         run: |
           mkdir -p build/android
-          godot --headless \
+          godot --headless --verbose \
             --path "${PROJECT_PATH}" \
             --export-release "Android" \
-            "build/android/${EXPORT_NAME}.apk"
+            "build/android/${EXPORT_NAME}.apk" \
+            2>&1 | tee /tmp/godot-export.log
+          if [ ! -f "build/android/${EXPORT_NAME}.apk" ]; then
+            echo "ERROR: APK was not produced"
+            exit 1
+          fi
+
+      - name: Upload Godot Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-export-logs
+          path: |
+            /tmp/godot-import.log
+            /tmp/godot-export.log
+          retention-days: 7
 
       - name: Upload APK Artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: monarchgame-android-apk
