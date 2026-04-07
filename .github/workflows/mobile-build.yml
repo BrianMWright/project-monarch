@@ -10,7 +10,6 @@ env:
   PROJECT_PATH: "src/monarch-game"
   EXPORT_NAME: "MonarchGame"
   ANDROID_HOME: /opt/android-sdk
-  JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
 
 jobs:
   export-android:
@@ -31,12 +30,21 @@ jobs:
             cp -r "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" \
               "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
           fi
+          echo "Templates copied:"
           ls "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable/" | head -5
 
       - name: Install Android SDK & Java
         run: |
           apt-get update
           apt-get install -y openjdk-17-jdk-headless python3 wget unzip libfontconfig1
+
+          # Detect JAVA_HOME dynamically instead of hardcoding
+          DETECTED_JAVA_HOME=$(dirname $(dirname $(readlink -f $(which javac))))
+          echo "Detected JAVA_HOME: ${DETECTED_JAVA_HOME}"
+          echo "JAVA_HOME=${DETECTED_JAVA_HOME}" >> $GITHUB_ENV
+          export JAVA_HOME="${DETECTED_JAVA_HOME}"
+
+          # Install Android command-line tools
           mkdir -p "${ANDROID_HOME}/cmdline-tools"
           wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
             -O /tmp/cmdline-tools.zip
@@ -90,19 +98,38 @@ jobs:
 
       - name: Pre-export Diagnostics
         run: |
+          echo "=== Godot Version ==="
+          godot --version 2>/dev/null || echo "Could not get version"
+          echo ""
           echo "=== Export Templates ==="
           ls "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable/" 2>/dev/null | head -5 || echo "MISSING"
           echo ""
+          echo "=== JAVA_HOME ==="
+          echo "JAVA_HOME=${JAVA_HOME}"
+          test -f "${JAVA_HOME}/bin/javac" && echo "javac: OK" || echo "javac: MISSING"
+          test -f "${JAVA_HOME}/bin/jarsigner" && echo "jarsigner: OK" || echo "jarsigner: MISSING"
+          echo ""
           echo "=== Android SDK ==="
+          echo "ANDROID_HOME=${ANDROID_HOME}"
           test -f "${ANDROID_HOME}/build-tools/35.0.1/aapt2" && echo "aapt2: OK" || echo "aapt2: MISSING"
+          test -f "${ANDROID_HOME}/build-tools/35.0.1/d8" && echo "d8: OK" || echo "d8: MISSING"
+          test -f "${ANDROID_HOME}/build-tools/35.0.1/zipalign" && echo "zipalign: OK" || echo "zipalign: MISSING"
+          test -f "${ANDROID_HOME}/build-tools/35.0.1/apksigner" && echo "apksigner: OK" || echo "apksigner: MISSING"
           test -f "${ANDROID_HOME}/platform-tools/adb" && echo "adb: OK" || echo "adb: MISSING"
+          test -d "${ANDROID_HOME}/platforms/android-35" && echo "platform-35: OK" || echo "platform-35: MISSING"
           echo ""
           echo "=== Editor Settings ==="
           cat "${HOME}/.config/godot/editor_settings-4.6.tres"
           echo ""
           echo "=== Keystores ==="
           test -f "${HOME}/.android/debug.keystore" && echo "Debug: OK" || echo "Debug: MISSING"
-          test -f "${PROJECT_PATH}/release.keystore" && echo "Release: OK ($(wc -c < "${PROJECT_PATH}/release.keystore") bytes)" || echo "Release: MISSING"
+          if [ -f "${PROJECT_PATH}/release.keystore" ]; then
+            SIZE=$(wc -c < "${PROJECT_PATH}/release.keystore")
+            echo "Release: OK (${SIZE} bytes)"
+            keytool -list -keystore "${PROJECT_PATH}/release.keystore" -storepass changeit 2>&1 | head -5 || true
+          else
+            echo "Release: MISSING"
+          fi
           echo ""
           echo "=== Export Preset (critical fields) ==="
           grep -E "^(keystore/|gradle_build/|package/signed|package/export_format)" "${PROJECT_PATH}/export_presets.cfg" | head -20
