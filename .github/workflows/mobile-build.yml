@@ -85,6 +85,12 @@ jobs:
         run: |
           godot --headless --path "${PROJECT_PATH}" --import 2>&1 | tee /tmp/godot-import.log || true
 
+      - name: Start ADB daemon
+        run: |
+          export PATH="${ANDROID_HOME}/platform-tools:${PATH}"
+          adb start-server
+          adb devices
+      
       - name: Write Godot Editor Settings
         run: |
           mkdir -p "${HOME}/.config/godot"
@@ -134,10 +140,6 @@ jobs:
           echo "=== Export Preset (critical fields) ==="
           grep -E "^(keystore/|gradle_build/|package/signed|package/export_format)" "${PROJECT_PATH}/export_presets.cfg" | head -20
 
-      - name: Start ADB
-        run: |
-          adb start-server
-          adb devices
       
       - name: Export Android APK
         run: |
