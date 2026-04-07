@@ -41,10 +41,12 @@ theme_override_constants/separation = 20
 [node name="LabelTile" type="Label" parent="UI/VBoxContainer" unique_id=3746182950]
 text = "Tile: —"
 horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 
 [node name="LabelRoll" type="Label" parent="UI/VBoxContainer" unique_id=2039481756]
 text = "Roll: —"
 horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 
 [node name="ButtonRoll" type="Button" parent="UI/VBoxContainer" unique_id=4129381056]
 custom_minimum_size = Vector2(0, 60)
