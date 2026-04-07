@@ -6,7 +6,7 @@
 ## remote-config fetch before enabling the Roll button, so tile data
 ## and dice config are guaranteed fresh from the server before play begins.
 
-extends Node2D
+extends Control
 
 # UI node references — populated once in _ready(), used by signal callbacks.
 var _label_tile: Label
@@ -14,14 +14,18 @@ var _label_roll: Label
 
 
 func _ready() -> void:
+	print("[Main] _ready() start")
+
 	# Wait one frame to ensure all child nodes are fully initialised.
 	await get_tree().process_frame
 
 	var dice_roller: DiceRoller = $DiceRoller
 	var player:      Player     = $Player
-	var button_roll: Button     = $UI/ButtonRoll
-	_label_tile                 = $UI/LabelTile
-	_label_roll                 = $UI/LabelRoll
+	var button_roll: Button     = $ButtonRoll
+	_label_tile                 = $LabelTile
+	_label_roll                 = $LabelRoll
+
+	print("[Main] nodes found, wiring signals")
 
 	# --- Signal wiring -------------------------------------------------------
 
@@ -29,18 +33,15 @@ func _ready() -> void:
 	dice_roller.rolled.connect(player.move_player)
 
 	# UI feedback: update the roll display whenever the dice are cast.
-	# Live Ops note: also connect dice_roller.rolled to an analytics event here.
 	dice_roller.rolled.connect(_on_rolled)
 
 	# UI feedback: update the tile display whenever the player lands.
-	# Live Ops note: connect player.tile_landed to a tile-event handler here
-	# (e.g. trigger a "Community Chest" card draw from a remote deck).
 	player.tile_landed.connect(_on_tile_landed)
 
 	# Player input: pressing the button triggers a roll.
-	# The hardcoded dice_roller.roll() call that was in _ready() is gone —
-	# the player now owns when their turn starts.
 	button_roll.pressed.connect(dice_roller.roll)
+
+	print("[Main] _ready() complete")
 
 
 # ---------------------------------------------------------------------------

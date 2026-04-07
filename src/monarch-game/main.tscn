@@ -9,67 +9,83 @@
 script = ExtResource("3_lquwl")
 metadata/_custom_type_script = "uid://dhwsea0omd264"
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
+bg_color = Color(0.08, 0.08, 0.18, 1)
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn"]
 bg_color = Color(0.2, 0.5, 1.0, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_left = 8
-corner_radius_bottom_right = 8
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_left = 12
+corner_radius_bottom_right = 12
 
-[node name="Main" type="Node2D" unique_id=1381037218]
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 script = ExtResource("1_h2yge")
 
-[node name="DiceRoller" type="Node" parent="." unique_id=3847261905]
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.08, 0.08, 0.18, 1)
+
+[node name="DiceRoller" type="Node" parent="."]
 script = ExtResource("4_droll")
 
-[node name="Player" type="Node" parent="." unique_id=1229729455]
+[node name="Player" type="Node" parent="."]
 script = ExtResource("2_1bvp3")
 board_data = SubResource("Resource_7mycd")
 
-[node name="UI" type="CanvasLayer" parent="." unique_id=2938471650]
-
-[node name="OffsetTest" type="ColorRect" parent="UI" unique_id=2222222222]
-offset_left = 40.0
-offset_top = 40.0
-offset_right = 440.0
-offset_bottom = 100.0
-color = Color(1.0, 0.8, 0.0, 1)
-
-[node name="AnchorTest" type="ColorRect" parent="UI" unique_id=3333333333]
-anchor_left = 0.1
-anchor_top = 0.5
-anchor_right = 0.9
-anchor_bottom = 0.7
-color = Color(1.0, 0.0, 0.0, 1)
-
-[node name="LabelTile" type="Label" parent="UI" unique_id=3746182950]
+[node name="LabelVersion" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = -1
 anchor_left = 0.0
-anchor_top = 0.15
+anchor_top = 0.02
 anchor_right = 1.0
-anchor_bottom = 0.25
+anchor_bottom = 0.1
+text = "Project Monarch  α 0.1.0"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.6, 0.6, 0.8, 1)
+theme_override_font_sizes/font_size = 28
+
+[node name="LabelTile" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.05
+anchor_top = 0.18
+anchor_right = 0.95
+anchor_bottom = 0.3
 text = "Tile: —"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 40
 
-[node name="LabelRoll" type="Label" parent="UI" unique_id=2039481756]
-anchor_left = 0.0
-anchor_top = 0.27
-anchor_right = 1.0
-anchor_bottom = 0.37
+[node name="LabelRoll" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.05
+anchor_top = 0.33
+anchor_right = 0.95
+anchor_bottom = 0.45
 text = "Roll: —"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 40
 
-[node name="ButtonRoll" type="Button" parent="UI" unique_id=4129381056]
-anchor_left = 0.05
-anchor_top = 0.8
-anchor_right = 0.95
-anchor_bottom = 0.92
+[node name="ButtonRoll" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.1
+anchor_top = 0.78
+anchor_right = 0.9
+anchor_bottom = 0.9
 text = "Roll Dice"
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 44
 theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_btn")
