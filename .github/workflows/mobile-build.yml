@@ -19,6 +19,9 @@ jobs:
       image: docker.io/barichello/godot-ci:4.6.2
 
     steps:
+      - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1
+
       - name: Checkout Repository
         uses: actions/checkout@v5
 
@@ -26,6 +29,8 @@ jobs:
         run: |
           mkdir -p ${HOME}/.local/share/godot/export_templates
           mkdir -p ${HOME}/.config/godot
+          wget -q -P "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}" \
+            https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/export_templates/android_release.apk
 
           if [ -d "/root/.local/share/godot/export_templates/${GODOT_VERSION}" ]; then
             cp -r "/root/.local/share/godot/export_templates/${GODOT_VERSION}" \
@@ -43,6 +48,13 @@ jobs:
       - name: Verify preset
         run: |
           sed -n '/\[preset\.0\]/,/\[preset\.1\]/p' "${PROJECT_PATH}/export_presets.cfg"
+
+      - name: Validate Release Keystore
+        run: |
+          if [ ! -f ${HOME}/.config/godot/release_key.jks ]; then
+            echo "Keystore file not found! Ensure it's configured and committed."
+            exit 1
+          fi
 
       - name: Import project
         run: |
