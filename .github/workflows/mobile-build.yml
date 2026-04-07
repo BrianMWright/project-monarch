@@ -24,10 +24,19 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v5
 
+      - name: Copy Export Templates from Image
+        run: |
+          mkdir -p "${HOME}/.local/share/godot/export_templates"
+          if [ -d "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" ]; then
+            cp -r "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" \
+              "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          fi
+          ls "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable/" | head -5
+
       - name: Install Android SDK & Java
         run: |
           apt-get update
-          apt-get install -y openjdk-17-jdk-headless python3 wget unzip
+          apt-get install -y openjdk-17-jdk-headless python3 wget unzip libfontconfig1
           mkdir -p "${ANDROID_HOME}/cmdline-tools"
           wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
             -O /tmp/cmdline-tools.zip
@@ -39,9 +48,9 @@ jobs:
 
       - name: Setup Keystores
         run: |
-          mkdir -p /root/.android
+          mkdir -p "${HOME}/.android"
           keytool -genkey -v \
-            -keystore /root/.android/debug.keystore \
+            -keystore "${HOME}/.android/debug.keystore" \
             -alias androiddebugkey \
             -storepass android -keypass android \
             -keyalg RSA -keysize 2048 -validity 10000 \
@@ -70,29 +79,29 @@ jobs:
 
       - name: Write Godot Editor Settings
         run: |
-          mkdir -p /root/.config/godot
+          mkdir -p "${HOME}/.config/godot"
           { printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\n'
             printf 'export/android/android_sdk_path = "%s"\n' "${ANDROID_HOME}"
             printf 'export/android/java_sdk_path = "%s"\n' "${JAVA_HOME}"
-            printf 'export/android/debug_keystore = "/root/.android/debug.keystore"\n'
+            printf 'export/android/debug_keystore = "%s/.android/debug.keystore"\n' "${HOME}"
             printf 'export/android/debug_keystore_user = "androiddebugkey"\n'
             printf 'export/android/debug_keystore_pass = "android"\n'
-          } > /root/.config/godot/editor_settings-4.6.tres
+          } > "${HOME}/.config/godot/editor_settings-4.6.tres"
 
       - name: Pre-export Diagnostics
         run: |
           echo "=== Export Templates ==="
-          ls /root/.local/share/godot/export_templates/ 2>/dev/null || echo "No templates dir"
+          ls "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable/" 2>/dev/null | head -5 || echo "MISSING"
           echo ""
           echo "=== Android SDK ==="
           test -f "${ANDROID_HOME}/build-tools/35.0.1/aapt2" && echo "aapt2: OK" || echo "aapt2: MISSING"
           test -f "${ANDROID_HOME}/platform-tools/adb" && echo "adb: OK" || echo "adb: MISSING"
           echo ""
           echo "=== Editor Settings ==="
-          cat /root/.config/godot/editor_settings-4.6.tres
+          cat "${HOME}/.config/godot/editor_settings-4.6.tres"
           echo ""
           echo "=== Keystores ==="
-          test -f /root/.android/debug.keystore && echo "Debug: OK" || echo "Debug: MISSING"
+          test -f "${HOME}/.android/debug.keystore" && echo "Debug: OK" || echo "Debug: MISSING"
           test -f "${PROJECT_PATH}/release.keystore" && echo "Release: OK ($(wc -c < "${PROJECT_PATH}/release.keystore") bytes)" || echo "Release: MISSING"
           echo ""
           echo "=== Export Preset (critical fields) ==="
