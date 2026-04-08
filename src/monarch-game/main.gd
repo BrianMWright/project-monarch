@@ -1,19 +1,39 @@
-## main.gd — diagnostic build, bypasses Control layout entirely
-extends Node2D
+## main.gd
+extends Control
+
+var _label_tile: Label
+var _label_roll: Label
+
 
 func _ready() -> void:
-	# Change the clear color from black to green — proves GDScript executed.
-	# If the screen turns green, GDScript runs but drawing may still be broken.
-	RenderingServer.set_default_clear_color(Color(0.0, 0.5, 0.0, 1.0))
+	print("[Main] _ready() start")
+
+	await get_tree().process_frame
+
+	print("[Main] after frame")
+
+	var dice_roller: DiceRoller = $DiceRoller
+	var player: Player = $Player
+	var button_roll: Button = $ButtonRoll
+	_label_tile = $LabelTile
+	_label_roll = $LabelRoll
+
+	print("[Main] nodes found, wiring signals")
+
+	dice_roller.rolled.connect(player.move_player)
+	dice_roller.rolled.connect(_on_rolled)
+	player.tile_landed.connect(_on_tile_landed)
+	button_roll.pressed.connect(dice_roller.roll)
+
+	_label_roll.text = "READY"
+	_label_tile.text = "MAIN LOADED"
+
+	print("[Main] _ready() complete")
 
 
-func _draw() -> void:
-	# Draw a bright red filled rectangle covering most of the screen.
-	# Uses low-level CanvasItem drawing — no Control/Layout system involved.
-	draw_rect(Rect2(50, 100, 900, 1800), Color(1.0, 0.0, 0.0, 1.0))
+func _on_rolled(steps: int) -> void:
+	_label_roll.text = "Roll: %d" % steps
 
-	# Draw "DRAW OK" in white — confirms font rendering works.
-	var font := ThemeDB.fallback_font
-	if font:
-		draw_string(font, Vector2(100, 600), "DRAW OK", HORIZONTAL_ALIGNMENT_LEFT,
-				-1, 120, Color(1, 1, 1, 1))
+
+func _on_tile_landed(tile: Dictionary) -> void:
+	_label_tile.text = "Tile: %s" % tile.get("name", "-")
