@@ -1,9 +1,5 @@
 ## Player.gd
 ## Represents a single player token on the board.
-##
-## Live Ops note: Emit signals on key state changes (tile landed, balance
-## updated, etc.) so a future analytics or event system can subscribe without
-## modifying this class.
 
 class_name Player
 extends Node
