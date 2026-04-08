@@ -1,9 +1,5 @@
 ## BoardData.gd
 ## Holds static tile definitions for the game board.
-##
-## Live Ops note: Replace the static `tiles` array with a remote-config fetch
-## (e.g. a JSON payload from your CDN) to push board changes without a full
-## app-store release.
 
 class_name BoardData
 extends Resource
