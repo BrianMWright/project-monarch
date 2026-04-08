@@ -10,13 +10,16 @@ func _ready() -> void:
 
 	await get_tree().process_frame
 
-	print("[Main] after frame")
-
 	var dice_roller: DiceRoller = $DiceRoller
 	var player: Player = $Player
 	var button_roll: Button = $ButtonRoll
+	var board_data: BoardData = $BoardData
+
 	_label_tile = $LabelTile
 	_label_roll = $LabelRoll
+
+	# assign dependency
+	player.board_data = board_data
 
 	print("[Main] nodes found, wiring signals")
 
