@@ -117,7 +117,7 @@ jobs:
           mkdir -p "${GITHUB_WORKSPACE}/build/android"
           godot --headless --verbose \
             --path "${PROJECT_PATH}" \
-            --export-release "Android" \
+            --export-debug "Android" \
             "${GITHUB_WORKSPACE}/build/android/${EXPORT_NAME}.apk" \
             2>&1 | tee /tmp/godot-export.log
           if [ ! -f "${GITHUB_WORKSPACE}/build/android/${EXPORT_NAME}.apk" ]; then
