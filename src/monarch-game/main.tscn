@@ -2,5 +2,30 @@
 
 [ext_resource type="Script" uid="uid://vrl3t6rn8fpt" path="res://main.gd" id="1_h2yge"]
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Control"]
 script = ExtResource("1_h2yge")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.1, 0.1, 0.1, 1)
+
+[node name="LabelRoll" type="Label" parent="."]
+offset_left = 20.0
+offset_top = 20.0
+text = "Roll: -"
+
+[node name="LabelTile" type="Label" parent="."]
+offset_left = 20.0
+offset_top = 60.0
+text = "Tile: -"
+
+[node name="ButtonRoll" type="Button" parent="."]
+offset_left = 20.0
+offset_top = 120.0
+text = "Roll"
+
+[node name="DiceRoller" type="Node" parent="."]
+
+[node name="Player" type="Node" parent="."]
