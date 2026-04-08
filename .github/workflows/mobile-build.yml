@@ -90,6 +90,13 @@ jobs:
               f.write(text)
           PYEOF
 
+      - name: List Available Export Templates
+        run: |
+          echo "=== Android templates in image ==="
+          ls -lah "${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable/" | grep -i android || echo "(none found)"
+          echo "=== All template files ==="
+          find "${HOME}/.local/share/godot/export_templates/" -type f | sort
+
       - name: Import Godot Project
         run: |
           godot --headless --path "${PROJECT_PATH}" --import 2>&1 | tee /tmp/godot-import.log || true
@@ -110,7 +117,7 @@ jobs:
           mkdir -p "${GITHUB_WORKSPACE}/build/android"
           godot --headless --verbose \
             --path "${PROJECT_PATH}" \
-            --export-debug "Android" \
+            --export-release "Android" \
             "${GITHUB_WORKSPACE}/build/android/${EXPORT_NAME}.apk" \
             2>&1 | tee /tmp/godot-export.log
           if [ ! -f "${GITHUB_WORKSPACE}/build/android/${EXPORT_NAME}.apk" ]; then
