@@ -54,7 +54,7 @@ func move_player(steps: int) -> void:
 
 	current_tile_index = (current_tile_index + steps) % 4
 
-	var tile: Dictionary = board_data.get_tile(current_tile_index)
+	var tile: Dictionary = BoardData.get_tile(current_tile_index)
 
 	print("[%s] Moved %d step(s) → landed on: %s (type: %s)" % [
 		player_name,
