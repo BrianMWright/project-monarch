@@ -97,9 +97,25 @@ jobs:
           echo "=== All template files ==="
           find "${HOME}/.local/share/godot/export_templates/" -type f | sort
 
+      - name: List Project Script Files (pre-import)
+        run: |
+          echo "=== .gd files in project ==="
+          find "${PROJECT_PATH}" -name "*.gd" -not -name "._*" | sort
+          echo "=== .gd.uid files in project ==="
+          find "${PROJECT_PATH}" -name "*.gd.uid" -not -name "._*" | sort
+          echo "=== scripts without matching .uid ==="
+          for gd in $(find "${PROJECT_PATH}" -name "*.gd" -not -name "._*"); do
+            if [ ! -f "${gd}.uid" ]; then
+              echo "MISSING UID: ${gd}"
+            fi
+          done
+
       - name: Import Godot Project
         run: |
-          godot --headless --path "${PROJECT_PATH}" --import 2>&1 | tee /tmp/godot-import.log || true
+          godot --headless --path "${PROJECT_PATH}" --import 2>&1 | tee /tmp/godot-import.log
+          echo "=== import exit status: $? ==="
+          echo "=== .gd.uid files AFTER import ==="
+          find "${PROJECT_PATH}" -name "*.gd.uid" -not -name "._*" | sort
 
       - name: Write Godot Editor Settings
         run: |
@@ -124,6 +140,21 @@ jobs:
             echo "ERROR: APK was not produced"
             exit 1
           fi
+
+      - name: Inspect APK Contents
+        run: |
+          APK="${GITHUB_WORKSPACE}/build/android/${EXPORT_NAME}.apk"
+          echo "=== APK top-level layout ==="
+          unzip -l "${APK}" | head -40
+          echo ""
+          echo "=== Script-related entries in APK ==="
+          unzip -l "${APK}" | grep -iE "(control|game_init|player|boarddata|diceroller|\.gd|\.gdc|\.tscn|project\.binary|project\.godot)" || echo "(no script/scene entries found)"
+          echo ""
+          echo "=== Full assets/ listing ==="
+          unzip -l "${APK}" | grep "assets/" || echo "(no assets/ entries)"
+          echo ""
+          echo "=== APK manifest debuggable flag ==="
+          unzip -p "${APK}" AndroidManifest.xml 2>/dev/null | strings | grep -i debuggable || echo "(debuggable flag not visible in binary manifest)"
 
       - name: Upload Godot Logs
         if: always()
