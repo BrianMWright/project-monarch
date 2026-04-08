@@ -19,13 +19,6 @@ config/main_scene="res://main.tscn"
 
 GameInit="*res://game_init.gd"
 
-[display]
-
-window/size/viewport_width=480
-window/size/viewport_height=854
-window/stretch/mode="canvas_items"
-window/stretch/aspect="expand"
-
 [physics]
 
 3d/physics_engine="Jolt Physics"
