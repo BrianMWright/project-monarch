@@ -1,0 +1,87 @@
+[gd_scene format=3 uid="uid://bavlcxbsye00y"]
+
+[ext_resource type="Script" uid="uid://ctrl_main_gd01" path="res://control.gd" id="1_ctrl"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn"]
+bg_color = Color(0.2, 0.5, 1.0, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_left = 12
+corner_radius_bottom_right = 12
+
+[node name="Control" type="Control" unique_id=1227861111]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ctrl")
+
+[node name="Background" type="ColorRect" parent="." unique_id=2000000001]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.08, 0.18, 1)
+
+[node name="LabelVersion" type="Label" parent="." unique_id=2000000002]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.0
+anchor_top = 0.02
+anchor_right = 1.0
+anchor_bottom = 0.1
+grow_horizontal = 2
+grow_vertical = 2
+text = "Project Monarch  α 0.1.0"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.6, 0.6, 0.8, 1)
+theme_override_font_sizes/font_size = 28
+
+[node name="LabelTile" type="Label" parent="." unique_id=2000000003]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.05
+anchor_top = 0.18
+anchor_right = 0.95
+anchor_bottom = 0.3
+grow_horizontal = 2
+grow_vertical = 2
+text = "Tile: —"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 40
+
+[node name="LabelRoll" type="Label" parent="." unique_id=2000000004]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.05
+anchor_top = 0.33
+anchor_right = 0.95
+anchor_bottom = 0.45
+grow_horizontal = 2
+grow_vertical = 2
+text = "Roll: —"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 40
+
+[node name="ButtonRoll" type="Button" parent="." unique_id=2000000005]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.1
+anchor_top = 0.78
+anchor_right = 0.9
+anchor_bottom = 0.9
+grow_horizontal = 2
+grow_vertical = 2
+text = "Roll Dice"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 44
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn")
