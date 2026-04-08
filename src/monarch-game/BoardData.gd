@@ -8,20 +8,15 @@
 class_name BoardData
 extends Resource
 
-# ---------------------------------------------------------------------------
-# Tile registry
-# Each Dictionary supports an arbitrary set of keys so new tile types
-# (e.g. "event", "multiplier") can be introduced via Live Ops config
-# without breaking existing entries.
-# ---------------------------------------------------------------------------
 const tiles: Array[Dictionary] = [
-	{ "name": "Go",             "type": "go"       },
-	{ "name": "Mediterranean",  "type": "property" },
-	{ "name": "Community Chest","type": "chest"    },
-	{ "name": "Baltic Avenue",  "type": "property" },
+	{ "name": "Go",              "type": "go"       },
+	{ "name": "Mediterranean",   "type": "property" },
+	{ "name": "Community Chest", "type": "chest"    },
+	{ "name": "Baltic Avenue",   "type": "property" },
 ]
 
-
-## Returns the tile Dictionary at [param index], wrapping around the board.
-static func get_tile(index: int) -> Dictionary:
+func get_tile(index: int) -> Dictionary:
 	return tiles[index % tiles.size()]
+
+func get_tile_count() -> int:
+	return tiles.size()
