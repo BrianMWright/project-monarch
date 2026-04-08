@@ -1,4 +1,3 @@
-## main.gd
 extends Control
 
 var _label_tile: Label
@@ -13,12 +12,12 @@ func _ready() -> void:
 	var dice_roller: DiceRoller = $DiceRoller
 	var player: Player = $Player
 	var button_roll: Button = $ButtonRoll
-	var board_data: BoardData = $BoardData
 
 	_label_tile = $LabelTile
 	_label_roll = $LabelRoll
 
-	# assign dependency
+	# create board data at runtime (no scene Resource node)
+	var board_data := BoardData.new()
 	player.board_data = board_data
 
 	print("[Main] nodes found, wiring signals")
