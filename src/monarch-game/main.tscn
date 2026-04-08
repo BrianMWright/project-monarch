@@ -3,15 +3,12 @@
 [ext_resource type="Script" path="res://main.gd" id="1_main"]
 [ext_resource type="Script" path="res://DiceRoller.gd" id="2_dice"]
 [ext_resource type="Script" path="res://Player.gd" id="3_player"]
-[ext_resource type="Script" path="res://BoardData.gd" id="4_board"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 script = ExtResource("1_main")
 
 [node name="ColorRect" type="ColorRect" parent="."]
@@ -23,30 +20,18 @@ color = Color(1, 0, 0, 1)
 z_index = -1
 
 [node name="LabelRoll" type="Label" parent="."]
-layout_mode = 1
-anchors_preset = 0
-anchor_left = 0.0
-anchor_top = 0.0
 offset_left = 40.0
 offset_top = 80.0
 text = "Roll: -"
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 
 [node name="LabelTile" type="Label" parent="."]
-layout_mode = 1
-anchors_preset = 0
-anchor_left = 0.0
-anchor_top = 0.0
 offset_left = 40.0
 offset_top = 140.0
 text = "Tile: -"
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 
 [node name="ButtonRoll" type="Button" parent="."]
-layout_mode = 1
-anchors_preset = 0
-anchor_left = 0.0
-anchor_top = 0.0
 offset_left = 40.0
 offset_top = 220.0
 offset_right = 200.0
@@ -58,6 +43,3 @@ script = ExtResource("2_dice")
 
 [node name="Player" type="Node" parent="."]
 script = ExtResource("3_player")
-
-[node name="BoardData" type="Resource" parent="."]
-script = ExtResource("4_board")
