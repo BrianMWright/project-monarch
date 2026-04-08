@@ -7,6 +7,14 @@ var _label_roll: Label
 
 
 func _ready() -> void:
+	push_error("[Control] _ready entered, size=%s viewport=%s" % [str(size), str(get_viewport_rect())])
+
+	# Force the root Control to fill the viewport.
+	# On Android the layout pass may not have completed when _ready fires.
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	size = get_viewport_rect().size
+	push_error("[Control] after force-resize size=%s" % str(size))
+
 	await get_tree().process_frame
 
 	var dice_roller: DiceRoller = $DiceRoller if has_node("DiceRoller") else null
