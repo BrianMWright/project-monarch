@@ -1,0 +1,84 @@
+[gd_scene format=3 uid="uid://na4c7nyjijfze"]
+
+[ext_resource type="Script" path="res://ui/main_menu.gd" id="1_main_menu"]
+[ext_resource type="PackedScene" path="res://ui/settings_panel.tscn" id="2_settings_panel"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main_menu")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.06, 0.06, 0.12, 1)
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -360.0
+offset_top = -360.0
+offset_right = 360.0
+offset_bottom = 360.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="Title" type="Label" parent="VBox"]
+layout_mode = 2
+text = "Project Monarch"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.9, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 56
+
+[node name="Subtitle" type="Label" parent="VBox"]
+layout_mode = 2
+text = "Menu"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.6, 0.6, 0.8, 1)
+theme_override_font_sizes/font_size = 28
+
+[node name="Version" type="Label" parent="VBox"]
+layout_mode = 2
+text = "v0.1.0+2 (build 2)"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.55, 0.55, 0.7, 1)
+theme_override_font_sizes/font_size = 22
+
+[node name="Spacer" type="Control" parent="VBox"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
+[node name="Buttons" type="VBoxContainer" parent="VBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="ButtonStart" type="Button" parent="VBox/Buttons"]
+layout_mode = 2
+text = "Start Game"
+theme_override_font_sizes/font_size = 40
+
+[node name="ButtonSettings" type="Button" parent="VBox/Buttons"]
+layout_mode = 2
+text = "Settings"
+theme_override_font_sizes/font_size = 40
+
+[node name="ButtonQuit" type="Button" parent="VBox/Buttons"]
+layout_mode = 2
+text = "Quit"
+theme_override_font_sizes/font_size = 40
+
+[node name="SettingsPanel" parent="." instance=ExtResource("2_settings_panel")]
+visible = false
