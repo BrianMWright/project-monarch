@@ -14,9 +14,36 @@ env:
   ANDROID_HOME: /opt/android-sdk
 
 jobs:
+  gdscript-tests:
+    name: GDScript tests
+    runs-on: ubuntu-latest
+
+    container:
+      image: docker.io/barichello/godot-ci:4.6.2
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Install runtime deps
+        run: |
+          apt-get update
+          apt-get install -y libfontconfig1
+
+      - name: Run Headless Tests
+        run: |
+          godot --headless --version
+          godot --headless \
+            --path "${PROJECT_PATH}" \
+            --import
+          godot --headless \
+            --path "${PROJECT_PATH}" \
+            --script res://tests/test_runner.gd
+
   export-android:
     name: Android (.apk)
     runs-on: ubuntu-latest
+    needs: gdscript-tests
 
     container:
       image: docker.io/barichello/godot-ci:4.6.2

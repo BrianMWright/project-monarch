@@ -1,6 +1,9 @@
 # macOS resource forks (AppleDouble files)
 ._*
 
+# Codex / Claude worktrees (local tooling artifacts)
+.claude/
+
 # Godot 4+ specific ignores
 .godot/
 .nomedia
