@@ -42,3 +42,8 @@ func run(ctx) -> void:
 
 	# Amount on tile 1 is expected to be -60 per current prototype data.
 	ctx.assert_ne(player.balance, 1000, "tile resolution should change balance when amount != 0")
+
+	# Cleanup: ensure Node instances don't leak between tests/runs.
+	if player is Node:
+		player.free()
+	board = null

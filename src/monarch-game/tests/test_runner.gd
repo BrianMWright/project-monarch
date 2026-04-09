@@ -37,19 +37,26 @@ func _run() -> void:
 		if not ok:
 			tests_failed += 1
 
+	var exit_code := 1
 	if tests_failed == 0 and ctx.failures.is_empty():
 		print("[Tests] PASS (%d tests, %d assertions)" % [tests_run, ctx.assertions_run])
-		quit(0)
-		return
+		exit_code = 0
 
-	print("[Tests] FAIL (%d failing test file(s), %d total failures, %d assertions)" % [
-		tests_failed,
-		ctx.failures.size(),
-		ctx.assertions_run,
-	])
-	for f in ctx.failures:
-		push_error("[Tests] " + f)
-	quit(1)
+	if exit_code != 0:
+		print("[Tests] FAIL (%d failing test file(s), %d total failures, %d assertions)" % [
+			tests_failed,
+			ctx.failures.size(),
+			ctx.assertions_run,
+		])
+		for f in ctx.failures:
+			push_error("[Tests] " + f)
+
+	# Let the call stack unwind before quitting to reduce exit-time leak warnings.
+	call_deferred("_exit", exit_code)
+
+
+func _exit(code: int) -> void:
+	quit(code)
 
 
 func _bootstrap_project(ctx) -> void:

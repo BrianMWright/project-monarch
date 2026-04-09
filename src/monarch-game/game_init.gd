@@ -3,11 +3,19 @@
 extends Node
 
 func _ready() -> void:
-	# push_error appears in logcat even in release builds
-	push_error("[GameInit] AUTOLOAD RUNNING")
-	push_error("[GameInit] OS: %s" % OS.get_name())
-	push_error("[GameInit] Screen: %s" % str(DisplayServer.window_get_size()))
-	push_error("[GameInit] Main scene setting: %s" % ProjectSettings.get_setting("application/run/main_scene", "NOT SET"))
+	# Use push_error on-device so it shows in logcat, but keep CI/headless logs clean.
+	var is_ci := OS.get_environment("CI") == "true"
+	var is_android := OS.get_name() == "Android" or OS.has_feature("android")
+	var log := func(message: String) -> void:
+		if is_android and not is_ci:
+			push_error(message)
+		else:
+			print(message)
+
+	log.call("[GameInit] AUTOLOAD RUNNING")
+	log.call("[GameInit] OS: %s" % OS.get_name())
+	log.call("[GameInit] Screen: %s" % str(DisplayServer.window_get_size()))
+	log.call("[GameInit] Main scene setting: %s" % ProjectSettings.get_setting("application/run/main_scene", "NOT SET"))
 
 	# Write a file so we can confirm execution via: adb shell cat /data/data/com.monarchgame.app/files/godot_diag.txt
 	var f := FileAccess.open("user://godot_diag.txt", FileAccess.WRITE)
@@ -16,6 +24,6 @@ func _ready() -> void:
 		f.store_string("OS=%s\n" % OS.get_name())
 		f.store_string("SCREEN=%s\n" % str(DisplayServer.window_get_size()))
 		f.close()
-		push_error("[GameInit] Wrote user://godot_diag.txt OK")
+		log.call("[GameInit] Wrote user://godot_diag.txt OK")
 	else:
-		push_error("[GameInit] WARNING: could not write diagnostic file")
+		log.call("[GameInit] WARNING: could not write diagnostic file")
