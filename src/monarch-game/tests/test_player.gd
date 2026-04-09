@@ -1,10 +1,12 @@
 ## test_player.gd
 extends RefCounted
 
+const BoardDataScript: Script = preload("res://BoardData.gd")
+const PlayerScript: Script = preload("res://Player.gd")
 
 func run(ctx) -> void:
-	var board := BoardData.new()
-	var player := Player.new()
+	var board = BoardDataScript.new()
+	var player = PlayerScript.new()
 	player.board_data = board
 	player.player_name = "TestPlayer"
 	player.starting_balance = 1000
@@ -19,7 +21,7 @@ func run(ctx) -> void:
 	ctx.assert_eq(player.balance, 1000, "reset_state sets balance to starting_balance")
 	ctx.assert_true(balance_events.size() >= 1, "reset_state emits balance_changed")
 
-	var start_index := player.current_tile_index
+	var start_index: int = int(player.current_tile_index)
 	player.move_player(1)
 	ctx.assert_eq(player.current_tile_index, (start_index + 1) % board.get_tile_count(), "move_player advances index and wraps")
 	ctx.assert_true(summaries.size() >= 1, "move_player resolves tile and emits turn_resolved")
@@ -27,4 +29,3 @@ func run(ctx) -> void:
 
 	# Amount on tile 1 is expected to be -60 per current prototype data.
 	ctx.assert_ne(player.balance, 1000, "tile resolution should change balance when amount != 0")
-

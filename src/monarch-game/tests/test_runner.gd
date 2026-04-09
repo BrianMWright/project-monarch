@@ -2,7 +2,10 @@
 ## Headless test runner: `godot --headless --path src/monarch-game --script res://tests/test_runner.gd`
 extends SceneTree
 
-const TEST_GLOB_PREFIX := "res://tests/test_"
+const _SKIP_FILES := {
+	"test_context.gd": true,
+	"test_runner.gd": true,
+}
 
 
 func _init() -> void:
@@ -59,6 +62,8 @@ func _find_test_scripts() -> Array[String]:
 			continue
 		if not name.ends_with(".gd"):
 			continue
+		if _SKIP_FILES.has(name):
+			continue
 		out.append("res://tests/%s" % name)
 	dir.list_dir_end()
 	return out
@@ -66,7 +71,7 @@ func _find_test_scripts() -> Array[String]:
 
 func _run_one(path: String, ctx) -> bool:
 	print("[Tests] Running %s" % path)
-	var script := load(path)
+	var script: Script = load(path)
 	if script == null:
 		ctx.failures.append("%s: could not load" % path)
 		return false
