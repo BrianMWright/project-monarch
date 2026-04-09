@@ -80,8 +80,7 @@ func _run_one(path: String, ctx) -> bool:
 		ctx.failures.append("%s: missing run(ctx) method" % path)
 		return false
 
-	var before := ctx.failures.size()
+	var before: int = int(ctx.failures.size())
 	test_obj.run(ctx)
-	var after := ctx.failures.size()
+	var after: int = int(ctx.failures.size())
 	return after == before
-
