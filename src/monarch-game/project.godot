@@ -11,14 +11,15 @@ config_version=5
 [application]
 
 config/name="MonarchGame"
-run/main_scene="uid://bavlcxbsye00y"
+run/main_scene="uid://na4c7nyjijfze"
 config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://icon.svg"
-config/main_scene="res://control.tscn"
+config/main_scene="res://ui/main_menu.tscn"
 
 [autoload]
 
 GameInit="*res://game_init.gd"
+Settings="*res://settings.gd"
 
 [physics]
 
