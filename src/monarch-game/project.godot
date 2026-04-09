@@ -11,6 +11,7 @@ config_version=5
 [application]
 
 config/name="MonarchGame"
+run/main_scene="uid://bavlcxbsye00y"
 config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://icon.svg"
 config/main_scene="res://control.tscn"
