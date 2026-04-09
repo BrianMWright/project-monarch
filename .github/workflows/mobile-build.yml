@@ -3,6 +3,8 @@ name: "Mobile Build"
 on:
   push:
     branches: ["main"]
+  pull_request:
+    branches: ["main"]
   workflow_dispatch:
 
 env:
@@ -12,9 +14,28 @@ env:
   ANDROID_HOME: /opt/android-sdk
 
 jobs:
+  gdscript-tests:
+    name: GDScript tests
+    runs-on: ubuntu-latest
+
+    container:
+      image: docker.io/barichello/godot-ci:4.6.2
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Run Headless Tests
+        run: |
+          godot --headless --version
+          godot --headless \
+            --path "${PROJECT_PATH}" \
+            --script res://tests/test_runner.gd
+
   export-android:
     name: Android (.apk)
     runs-on: ubuntu-latest
+    needs: gdscript-tests
 
     container:
       image: docker.io/barichello/godot-ci:4.6.2
