@@ -5,11 +5,15 @@ class_name Player
 extends Node
 
 signal tile_landed(tile: Dictionary)
+signal balance_changed(balance: int)
+signal turn_resolved(summary: String)
 
 var current_tile_index: int = 0
 
 @export var player_name: String = "Player"
+@export var starting_balance: int = 1500
 @export var board_data: BoardData
+var balance: int = starting_balance
 
 
 func move_player(steps: int) -> void:
@@ -28,3 +32,26 @@ func move_player(steps: int) -> void:
 	])
 
 	tile_landed.emit(tile)
+	_resolve_tile(tile)
+
+
+func reset_state() -> void:
+	current_tile_index = 0
+	balance = starting_balance
+	balance_changed.emit(balance)
+
+
+func _resolve_tile(tile: Dictionary) -> void:
+	var amount: int = int(tile.get("amount", 0))
+	balance += amount
+	balance_changed.emit(balance)
+
+	var summary: String
+	if amount > 0:
+		summary = "%s gained $%d on %s." % [player_name, amount, tile.get("name", "this tile")]
+	elif amount < 0:
+		summary = "%s paid $%d on %s." % [player_name, abs(amount), tile.get("name", "this tile")]
+	else:
+		summary = "%s visited %s." % [player_name, tile.get("name", "this tile")]
+
+	turn_resolved.emit(summary)

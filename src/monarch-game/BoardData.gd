@@ -5,10 +5,30 @@ class_name BoardData
 extends Resource
 
 const tiles: Array[Dictionary] = [
-	{ "name": "Go",              "type": "go"       },
-	{ "name": "Mediterranean",   "type": "property" },
-	{ "name": "Community Chest", "type": "chest"    },
-	{ "name": "Baltic Avenue",   "type": "property" },
+	{
+		"name": "Go",
+		"type": "go",
+		"description": "Collect a small starting bonus.",
+		"amount": 200,
+	},
+	{
+		"name": "Mediterranean",
+		"type": "property",
+		"description": "Pay rent on a modest property.",
+		"amount": -60,
+	},
+	{
+		"name": "Community Chest",
+		"type": "chest",
+		"description": "Receive a neighborhood reward.",
+		"amount": 120,
+	},
+	{
+		"name": "Baltic Avenue",
+		"type": "property",
+		"description": "Pay rent on a second property.",
+		"amount": -80,
+	},
 ]
 
 func get_tile(index: int) -> Dictionary:
