@@ -30,7 +30,7 @@ func _run() -> void:
 		if not ok:
 			tests_failed += 1
 
-	if ctx.failures.is_empty():
+	if tests_failed == 0 and ctx.failures.is_empty():
 		print("[Tests] PASS (%d tests, %d assertions)" % [tests_run, ctx.assertions_run])
 		quit(0)
 		return
@@ -74,6 +74,9 @@ func _run_one(path: String, ctx) -> bool:
 	var script: Script = load(path)
 	if script == null:
 		ctx.failures.append("%s: could not load" % path)
+		return false
+	if not script.can_instantiate():
+		ctx.failures.append("%s: script could not be instantiated (compile error?)" % path)
 		return false
 
 	var test_obj = script.new()

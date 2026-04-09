@@ -35,6 +35,9 @@ jobs:
           godot --headless --version
           godot --headless \
             --path "${PROJECT_PATH}" \
+            --import
+          godot --headless \
+            --path "${PROJECT_PATH}" \
             --script res://tests/test_runner.gd
 
   export-android:
