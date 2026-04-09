@@ -1,6 +1,8 @@
 [gd_scene format=3 uid="uid://bavlcxbsye00y"]
 
 [ext_resource type="Script" path="res://control.gd" id="1_ctrl"]
+[ext_resource type="Script" path="res://DiceRoller.gd" id="2_dice"]
+[ext_resource type="Script" path="res://Player.gd" id="3_player"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn"]
 bg_color = Color(0.2, 0.5, 1.0, 1)
@@ -85,3 +87,9 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_btn")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn")
+
+[node name="DiceRoller" type="Node" parent="."]
+script = ExtResource("2_dice")
+
+[node name="Player" type="Node" parent="."]
+script = ExtResource("3_player")
