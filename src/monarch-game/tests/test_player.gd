@@ -1,12 +1,25 @@
 ## test_player.gd
 extends RefCounted
 
-const BoardDataScript: Script = preload("res://BoardData.gd")
-const PlayerScript: Script = preload("res://Player.gd")
-
 func run(ctx) -> void:
-	var board = BoardDataScript.new()
-	var player = PlayerScript.new()
+	var board_script: Script = load("res://BoardData.gd")
+	ctx.assert_true(board_script != null, "BoardData.gd should load")
+	if board_script == null:
+		return
+	ctx.assert_true(board_script.can_instantiate(), "BoardData.gd should compile")
+	if not board_script.can_instantiate():
+		return
+
+	var player_script: Script = load("res://Player.gd")
+	ctx.assert_true(player_script != null, "Player.gd should load")
+	if player_script == null:
+		return
+	ctx.assert_true(player_script.can_instantiate(), "Player.gd should compile (BoardData type available)")
+	if not player_script.can_instantiate():
+		return
+
+	var board = board_script.new()
+	var player = player_script.new()
 	player.board_data = board
 	player.player_name = "TestPlayer"
 	player.starting_balance = 1000

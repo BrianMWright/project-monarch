@@ -16,6 +16,13 @@ func _run() -> void:
 	var ctx_script := load("res://tests/test_context.gd")
 	var ctx = ctx_script.new()
 
+	_bootstrap_project(ctx)
+	if not ctx.failures.is_empty():
+		for f in ctx.failures:
+			push_error("[Tests] " + f)
+		quit(1)
+		return
+
 	var test_paths := _find_test_scripts()
 	test_paths.sort()
 
@@ -44,6 +51,22 @@ func _run() -> void:
 		push_error("[Tests] " + f)
 	quit(1)
 
+
+func _bootstrap_project(ctx) -> void:
+	# Ensure core scripts compile and class_name types are registered before tests run.
+	var bootstrap_paths := [
+		"res://BoardData.gd",
+		"res://Player.gd",
+		"res://DiceRoller.gd",
+	]
+
+	for p in bootstrap_paths:
+		var s: Script = load(p)
+		if s == null:
+			ctx.failures.append("%s: failed to load (bootstrap)" % p)
+			continue
+		if not s.can_instantiate():
+			ctx.failures.append("%s: failed to compile (bootstrap)" % p)
 
 func _find_test_scripts() -> Array[String]:
 	var out: Array[String] = []

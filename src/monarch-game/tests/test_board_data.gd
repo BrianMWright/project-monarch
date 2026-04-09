@@ -1,10 +1,16 @@
 ## test_board_data.gd
 extends RefCounted
 
-const BoardDataScript: Script = preload("res://BoardData.gd")
-
 func run(ctx) -> void:
-	var board = BoardDataScript.new()
+	var board_script: Script = load("res://BoardData.gd")
+	ctx.assert_true(board_script != null, "BoardData.gd should load")
+	if board_script == null:
+		return
+	ctx.assert_true(board_script.can_instantiate(), "BoardData.gd should compile")
+	if not board_script.can_instantiate():
+		return
+
+	var board = board_script.new()
 
 	ctx.assert_true(board.get_tile_count() > 0, "BoardData should have at least one tile")
 	ctx.assert_eq(board.get_tile_count(), board.tiles.size(), "BoardData.get_tile_count matches tiles.size()")
