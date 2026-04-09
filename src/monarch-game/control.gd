@@ -8,6 +8,7 @@ var _label_roll: Label
 
 func _ready() -> void:
 	push_error("[Control] _ready entered, size=%s viewport=%s" % [str(size), str(get_viewport_rect())])
+	randomize()
 
 	# Force the root Control to fill the viewport.
 	# On Android the layout pass may not have completed when _ready fires.
@@ -24,10 +25,14 @@ func _ready() -> void:
 	_label_roll                 = $LabelRoll
 
 	if dice_roller and player:
+		if player.board_data == null:
+			player.board_data = BoardData.new()
+
 		dice_roller.rolled.connect(player.move_player)
 		dice_roller.rolled.connect(_on_rolled)
 		player.tile_landed.connect(_on_tile_landed)
 		button_roll.pressed.connect(dice_roller.roll)
+		_on_tile_landed(player.board_data.get_tile(player.current_tile_index))
 	else:
 		# No game logic nodes yet — button just flashes the label so we know it works.
 		button_roll.pressed.connect(_on_test_press)
