@@ -5,6 +5,11 @@
 class_name GameState
 extends RefCounted
 
+const BoardData := preload("res://BoardData.gd")
+const RngService := preload("res://game/rng_service.gd")
+const Deck := preload("res://game/deck.gd")
+const PlayerState := preload("res://game/player_state.gd")
+
 signal state_changed(snapshot: Dictionary)
 signal decision_requested(decision: Dictionary)
 signal log_line(message: String)
@@ -27,7 +32,7 @@ var rng: RngService
 var chance_deck: Deck = Deck.new()
 var chest_deck: Deck = Deck.new()
 
-var players: Array[PlayerState] = []
+var players: Array = []
 var current_player_index: int = 0
 
 var owners: Dictionary = {} # tile_index -> player_index
@@ -42,12 +47,12 @@ var seed: int = 0
 func setup(vs_ai: bool, fixed_seed_enabled: bool, fixed_seed_value: int) -> void:
 	players = []
 
-	var p1 := PlayerState.new()
+	var p1: PlayerState = PlayerState.new()
 	p1.player_name = "Player 1"
 	p1.player_type = PlayerState.PlayerType.HUMAN
 	players.append(p1)
 
-	var p2 := PlayerState.new()
+	var p2: PlayerState = PlayerState.new()
 	p2.player_name = "Player 2"
 	p2.player_type = PlayerState.PlayerType.AI if vs_ai else PlayerState.PlayerType.HUMAN
 	players.append(p2)
@@ -94,7 +99,7 @@ func request_roll() -> void:
 	if phase != Phase.AWAIT_ROLL:
 		return
 
-	var player := _current_player()
+	var player: PlayerState = _current_player()
 	if player.in_jail:
 		_request_jail_choice(player)
 		return
@@ -152,11 +157,11 @@ func _reset_decks() -> void:
 
 
 func _roll_and_move(player: PlayerState) -> void:
-	var d1 := rng.roll_d6()
-	var d2 := rng.roll_d6()
+	var d1: int = rng.roll_d6()
+	var d2: int = rng.roll_d6()
 	last_roll = [d1, d2]
 
-	var is_doubles := d1 == d2
+	var is_doubles: bool = d1 == d2
 	player.consecutive_doubles = (player.consecutive_doubles + 1) if is_doubles else 0
 
 	_emit_log("%s rolled %d + %d%s" % [
@@ -171,7 +176,7 @@ func _roll_and_move(player: PlayerState) -> void:
 		_finish_turn()
 		return
 
-	var steps := d1 + d2
+	var steps: int = d1 + d2
 	_move_player_steps(player, steps)
 	_resolve_landing(player)
 
@@ -192,7 +197,7 @@ func _roll_and_move(player: PlayerState) -> void:
 
 
 func _move_player_steps(player: PlayerState, steps: int) -> void:
-	var old_pos := player.position
+	var old_pos: int = player.position
 	player.position = (player.position + steps) % board_data.get_tile_count()
 	if player.position < old_pos:
 		player.cash += GO_MONEY
@@ -244,7 +249,7 @@ func _apply_card(player: PlayerState, card: Dictionary) -> void:
 
 
 func _move_to(player: PlayerState, position: int, collect_go: bool) -> void:
-	var old_pos := player.position
+	var old_pos: int = player.position
 	player.position = position % board_data.get_tile_count()
 	if collect_go and player.position < old_pos:
 		player.cash += GO_MONEY
@@ -305,10 +310,10 @@ func _request_buy_or_auction(tile: Dictionary, player: PlayerState) -> void:
 
 
 func _handle_buy_or_auction(action: Dictionary) -> void:
-	var player := _current_player()
-	var act := str(action.get("action", ""))
-	var tile_index := int(_pending_decision.get("tile_index", player.position))
-	var tile := board_data.get_tile(tile_index)
+	var player: PlayerState = _current_player()
+	var act: String = str(action.get("action", ""))
+	var tile_index: int = int(_pending_decision.get("tile_index", player.position))
+	var tile: Dictionary = board_data.get_tile(tile_index)
 	var price := int(tile.get("price", 0))
 
 	_pending_decision = {}
@@ -330,7 +335,7 @@ func _handle_buy_or_auction(action: Dictionary) -> void:
 
 
 func _begin_auction(tile_index: int) -> void:
-	var tile := board_data.get_tile(tile_index)
+	var tile: Dictionary = board_data.get_tile(tile_index)
 	_emit_log("Auction begins for %s." % str(tile.get("name", "")))
 
 	_auction_state = {
@@ -346,9 +351,9 @@ func _begin_auction(tile_index: int) -> void:
 
 func _request_auction_action() -> void:
 	var tile_index := int(_auction_state.get("tile_index", 0))
-	var tile := board_data.get_tile(tile_index)
-	var bidder_index := int(_auction_state.get("bidder_index", 0))
-	var bidder := players[bidder_index]
+	var tile: Dictionary = board_data.get_tile(tile_index)
+	var bidder_index: int = int(_auction_state.get("bidder_index", 0))
+	var bidder: PlayerState = players[bidder_index]
 
 	_pending_decision = {
 		"type": "AUCTION_BID_OR_PASS",
@@ -425,7 +430,7 @@ func _request_jail_choice(player: PlayerState) -> void:
 
 
 func _handle_jail_choice(action: Dictionary) -> void:
-	var player := _current_player()
+	var player: PlayerState = _current_player()
 	var act := str(action.get("action", ""))
 	_pending_decision = {}
 
@@ -459,10 +464,10 @@ func _handle_jail_choice(action: Dictionary) -> void:
 
 
 func _handle_jail_roll(player: PlayerState) -> void:
-	var d1 := rng.roll_d6()
-	var d2 := rng.roll_d6()
+	var d1: int = rng.roll_d6()
+	var d2: int = rng.roll_d6()
 	last_roll = [d1, d2]
-	var is_doubles := d1 == d2
+	var is_doubles: bool = d1 == d2
 
 	_emit_log("%s rolls in jail: %d + %d%s" % [
 		player.player_name,

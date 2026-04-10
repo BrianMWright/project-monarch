@@ -4,15 +4,14 @@
 class_name Deck
 extends RefCounted
 
-var _cards: Array[Dictionary] = []
+const RngService := preload("res://game/rng_service.gd")
+
+var _cards: Array = []
 var _index: int = 0
 
 
 func reset(cards: Array[Dictionary], rng: RngService) -> void:
-	_cards = []
-	for c in cards:
-		_cards.append(c)
-	_cards = rng.shuffle_array(_cards)
+	_cards = rng.shuffle_array(cards)
 	_index = 0
 
 
@@ -23,4 +22,3 @@ func draw() -> Dictionary:
 	var card: Dictionary = _cards[_index]
 	_index = (_index + 1) % _cards.size()
 	return card
-

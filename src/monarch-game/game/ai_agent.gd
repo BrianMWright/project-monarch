@@ -43,7 +43,7 @@ func _auction_bid_or_pass(decision: Dictionary) -> Dictionary:
 	var cash := int(decision.get("cash", 0))
 	var current_bid := int(decision.get("current_bid", 0))
 
-	var cap := min(price, cash - SAFETY_BUFFER)
+	var cap: int = mini(price, cash - SAFETY_BUFFER)
 	var next_bid := current_bid + AUCTION_STEP
 	if cap >= next_bid:
 		return {"action": "bid", "amount": next_bid}

@@ -22,6 +22,11 @@ func randf() -> float:
 	return _rng.randf()
 
 
+func reseed(p_seed: int) -> void:
+	seed = p_seed
+	_rng.seed = seed
+
+
 func roll_d6() -> int:
 	return randi_range(1, 6)
 
