@@ -9,7 +9,7 @@ signal quit_requested
 @onready var _button_settings: Button = $Overlay/Panel/VBox/Buttons/ButtonSettings
 @onready var _button_main_menu: Button = $Overlay/Panel/VBox/Buttons/ButtonMainMenu
 @onready var _button_quit: Button = $Overlay/Panel/VBox/Buttons/ButtonQuit
-@onready var _settings_panel = $SettingsPanel
+@onready var _settings_panel: Control = $SettingsPanel
 
 
 func _ready() -> void:

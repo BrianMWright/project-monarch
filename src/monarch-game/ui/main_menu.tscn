@@ -61,6 +61,40 @@ theme_override_font_sizes/font_size = 22
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
 
+[node name="Setup" type="VBoxContainer" parent="VBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="RowMode" type="HBoxContainer" parent="VBox/Setup"]
+layout_mode = 2
+alignment = 1
+
+[node name="LabelMode" type="Label" parent="VBox/Setup/RowMode"]
+layout_mode = 2
+text = "Mode:"
+theme_override_colors/font_color = Color(0.75, 0.75, 0.9, 1)
+theme_override_font_sizes/font_size = 24
+
+[node name="OptionMode" type="OptionButton" parent="VBox/Setup/RowMode"]
+layout_mode = 2
+custom_minimum_size = Vector2(240, 0)
+theme_override_font_sizes/font_size = 24
+
+[node name="RowSeed" type="HBoxContainer" parent="VBox/Setup"]
+layout_mode = 2
+alignment = 1
+
+[node name="CheckFixedSeed" type="CheckBox" parent="VBox/Setup/RowSeed"]
+layout_mode = 2
+text = "Fixed seed"
+theme_override_font_sizes/font_size = 24
+
+[node name="LineEditSeed" type="LineEdit" parent="VBox/Setup/RowSeed"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 0)
+placeholder_text = "12345"
+theme_override_font_sizes/font_size = 24
+
 [node name="Buttons" type="VBoxContainer" parent="VBox"]
 layout_mode = 2
 alignment = 1

@@ -1,6 +1,9 @@
 # macOS resource forks (AppleDouble files)
 ._*
 
+# Codex / Claude worktrees (local tooling)
+.claude/
+
 # Godot 4+ specific ignores
 .godot/
 .nomedia
@@ -26,6 +29,10 @@ release.keystore
 
 # Build output directories
 build/
+
+# Android build artifacts
+*.apk
+*.aab
 
 # Xcode export options plist — generated inline by the CI workflow.
 ExportOptions.plist
