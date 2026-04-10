@@ -20,8 +20,8 @@ var _button_pay_fine: Button
 var _button_jail_roll: Button
 var _button_use_card: Button
 var _button_end_turn: Button
-var _button_menu: Button
-var _pause_menu
+var _button_menu: Button | null
+var _pause_menu: CanvasLayer | null
 
 
 func _ready() -> void:

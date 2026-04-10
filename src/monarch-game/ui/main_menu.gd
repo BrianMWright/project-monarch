@@ -7,7 +7,7 @@ extends Control
 @onready var _option_mode: OptionButton = $VBox/Setup/RowMode/OptionMode
 @onready var _check_fixed_seed: CheckBox = $VBox/Setup/RowSeed/CheckFixedSeed
 @onready var _line_seed: LineEdit = $VBox/Setup/RowSeed/LineEditSeed
-@onready var _settings_panel = $SettingsPanel
+@onready var _settings_panel: Control = $SettingsPanel
 
 
 func _ready() -> void:

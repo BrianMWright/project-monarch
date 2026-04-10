@@ -33,7 +33,7 @@ func shuffle_array(items: Array) -> Array:
 
 	for i in range(out.size() - 1, 0, -1):
 		var j := randi_range(0, i)
-		var tmp = out[i]
+		var tmp: Variant = out[i]
 		out[i] = out[j]
 		out[j] = tmp
 	return out
