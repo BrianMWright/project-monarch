@@ -275,8 +275,8 @@ func _apply_money(player: PlayerState, delta: int, reason: String) -> void:
 
 
 func _handle_purchasable_tile(player: PlayerState, tile: Dictionary) -> void:
-	var tile_index := int(tile.get("index", player.position))
-	var owner := owners.get(tile_index, -1)
+	var tile_index: int = int(tile.get("index", player.position))
+	var owner: int = int(owners.get(tile_index, -1))
 
 	if owner == -1:
 		_request_buy_or_auction(tile, player)
@@ -542,7 +542,7 @@ func _utility_rent(tile_index: int) -> int:
 	for idx in board_data.get_utility_indices():
 		if int(owners.get(idx, -1)) == owner:
 			count += 1
-	var multiplier := 4 if count <= 1 else 10
+	var multiplier: int = 4 if count <= 1 else 10
 	return (last_roll[0] + last_roll[1]) * multiplier
 
 
