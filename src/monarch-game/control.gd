@@ -26,6 +26,7 @@ var _button_use_card: Button
 var _button_end_turn: Button
 var _button_menu: Button
 var _pause_menu: CanvasLayer
+var _ai_auto_roll_pending: bool = false
 
 
 func _ready() -> void:
@@ -128,6 +129,9 @@ func _on_state_changed(snapshot: Dictionary) -> void:
 	var decision: Dictionary = snapshot.get("pending_decision", {})
 	_set_decision_ui(decision)
 
+	if decision.is_empty():
+		_schedule_ai_roll(snapshot, players, current_index)
+
 
 func _on_decision_requested(decision: Dictionary) -> void:
 	_set_decision_ui(decision)
@@ -190,6 +194,31 @@ func _set_decision_ui(decision: Dictionary) -> void:
 			_button_end_turn.visible = true
 		_:
 			_button_end_turn.visible = true
+
+
+func _schedule_ai_roll(snapshot: Dictionary, players: Array, current_index: int) -> void:
+	if _ai_auto_roll_pending:
+		return
+	if current_index < 0 or current_index >= players.size():
+		return
+	if int(snapshot.get("phase", GameState.Phase.NOT_STARTED)) != GameState.Phase.AWAIT_ROLL:
+		return
+
+	var player: Dictionary = players[current_index]
+	if int(player.get("type", 0)) != PlayerState.PlayerType.AI:
+		return
+
+	_ai_auto_roll_pending = true
+	call_deferred("_do_ai_roll")
+
+
+func _do_ai_roll() -> void:
+	_ai_auto_roll_pending = false
+	if _game_state == null:
+		return
+	if not is_inside_tree():
+		return
+	_game_state.request_roll()
 
 
 func _get_cmdline_seed_override() -> Variant:
