@@ -2,6 +2,10 @@
 ## Entry point wired to the Control-rooted main scene.
 extends Control
 
+const GameState := preload("res://game/game_state.gd")
+const AiAgent := preload("res://game/ai_agent.gd")
+const PlayerState := preload("res://game/player_state.gd")
+
 var _game_state: GameState
 var _ai_agent: AiAgent
 
@@ -71,7 +75,7 @@ func _ready() -> void:
 
 	var fixed_seed_enabled := Settings.fixed_seed_enabled
 	var fixed_seed_value := Settings.fixed_seed_value
-	var override_seed := _get_cmdline_seed_override()
+	var override_seed: Variant = _get_cmdline_seed_override()
 	if override_seed != null:
 		fixed_seed_enabled = true
 		fixed_seed_value = int(override_seed)
@@ -117,7 +121,7 @@ func _on_state_changed(snapshot: Dictionary) -> void:
 		var tile := _game_state.board_data.get_tile(pos)
 		_label_tile.text = "Tile: %s" % str(tile.get("name", "—"))
 
-	var roll := snapshot.get("last_roll", [0, 0])
+	var roll: Array = snapshot.get("last_roll", [0, 0])
 	if roll is Array and roll.size() >= 2:
 		_label_roll.text = "Roll: %d + %d" % [int(roll[0]), int(roll[1])]
 
