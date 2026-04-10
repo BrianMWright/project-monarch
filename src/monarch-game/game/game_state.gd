@@ -40,7 +40,7 @@ var owners: Dictionary = {} # tile_index -> player_index
 var last_roll: Array[int] = [0, 0]
 var _pending_decision: Dictionary = {}
 var _auction_state: Dictionary = {}
-var _extra_roll_pending: bool = false
+var _turn_has_bonus_roll: bool = false
 
 var seed: int = 0
 
@@ -66,7 +66,7 @@ func setup(vs_ai: bool, fixed_seed_enabled: bool, fixed_seed_value: int) -> void
 	current_player_index = 0
 	_pending_decision = {}
 	_auction_state = {}
-	_extra_roll_pending = false
+	_turn_has_bonus_roll = false
 
 	_reset_decks()
 	phase = Phase.AWAIT_ROLL
@@ -174,7 +174,7 @@ func _roll_and_move(player: PlayerState) -> void:
 	])
 
 	if player.consecutive_doubles >= 3:
-		_extra_roll_pending = false
+		_turn_has_bonus_roll = false
 		_send_to_jail(player, "Rolled doubles three times.")
 		_finish_turn()
 		return
@@ -187,18 +187,18 @@ func _roll_and_move(player: PlayerState) -> void:
 		return
 
 	if player.in_jail:
-		_extra_roll_pending = false
+		_turn_has_bonus_roll = false
 		_finish_turn()
 		return
 
 	if is_doubles:
-		_extra_roll_pending = true
+		_turn_has_bonus_roll = true
 		_emit_log("%s gets another roll (doubles)." % player.player_name)
 		phase = Phase.AWAIT_ROLL
 		_emit_state()
 		return
 
-	_extra_roll_pending = false
+	_turn_has_bonus_roll = false
 	_finish_turn()
 
 
@@ -337,13 +337,7 @@ func _handle_buy_or_auction(action: Dictionary) -> void:
 		_begin_auction(tile_index)
 		return
 
-	if _extra_roll_pending:
-		_pending_decision = {}
-		phase = Phase.AWAIT_ROLL
-		_emit_state()
-		return
-
-	_finish_turn()
+	_after_decision_or_finish_turn()
 
 
 func _begin_auction(tile_index: int) -> void:
@@ -424,12 +418,7 @@ func _handle_auction_bid_or_pass(action: Dictionary) -> void:
 			_check_bankruptcy(players[high_bidder])
 
 		_auction_state = {}
-		if _extra_roll_pending:
-			_pending_decision = {}
-			phase = Phase.AWAIT_ROLL
-			_emit_state()
-			return
-		_finish_turn()
+		_after_decision_or_finish_turn()
 		return
 
 	_request_auction_action()
@@ -450,7 +439,7 @@ func _handle_jail_choice(action: Dictionary) -> void:
 	var player: PlayerState = _current_player()
 	var act := str(action.get("action", ""))
 	_pending_decision = {}
-	_extra_roll_pending = false
+	_turn_has_bonus_roll = false
 
 	match act:
 		"use_card":
@@ -580,7 +569,7 @@ func _finish_turn() -> void:
 	if phase == Phase.GAME_OVER:
 		return
 
-	_extra_roll_pending = false
+	_turn_has_bonus_roll = false
 	_pending_decision = {"type": "END_TURN_CONFIRM"}
 	phase = Phase.AWAIT_DECISION
 	decision_requested.emit(_pending_decision.duplicate())
@@ -594,6 +583,15 @@ func _end_turn() -> void:
 	phase = Phase.AWAIT_ROLL
 	_emit_log("Turn: %s" % _current_player().player_name)
 	_emit_state()
+
+
+func _after_decision_or_finish_turn() -> void:
+	_pending_decision = {}
+	if _turn_has_bonus_roll:
+		phase = Phase.AWAIT_ROLL
+		_emit_state()
+		return
+	_finish_turn()
 
 
 func _check_bankruptcy(player: PlayerState) -> void:
