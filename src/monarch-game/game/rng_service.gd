@@ -2,7 +2,6 @@
 ## Deterministic RNG using a 32-bit LCG (Numerical Recipes).
 ## All arithmetic stays within int64 range — no overflow, no float conversion.
 
-class_name RngService
 extends RefCounted
 
 var seed: int

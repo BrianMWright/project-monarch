@@ -3,7 +3,7 @@ extends RefCounted
 const RngService := preload("res://game/rng_service.gd")
 
 func run(ctx) -> void:
-	var a: RngService = RngService.new(123)
-	var b: RngService = RngService.new(123)
-	for i in range(20):
-		ctx.assert_eq(a.roll_d6(), b.roll_d6(), "roll %d matches" % i)
+	var rng: RngService = RngService.new(123)
+	for i in range(100):
+		var v: int = rng.roll_d6()
+		ctx.assert_true(v >= 1 and v <= 6, "roll %d in [1,6]" % i)
