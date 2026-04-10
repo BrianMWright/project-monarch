@@ -201,8 +201,9 @@ func _roll_and_move(player: PlayerState) -> void:
 	if is_doubles:
 		_turn_has_bonus_roll = true
 		_emit_log("%s gets another roll (doubles)." % player.player_name)
-		phase = Phase.AWAIT_ROLL
-		_emit_state()
+		if phase == Phase.AWAIT_ROLL:
+			phase = Phase.AWAIT_ROLL
+			_emit_state()
 		return
 
 	_turn_has_bonus_roll = false
