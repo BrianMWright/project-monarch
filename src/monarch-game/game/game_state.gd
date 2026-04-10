@@ -41,6 +41,7 @@ var last_roll: Array[int] = [0, 0]
 var _pending_decision: Dictionary = {}
 var _auction_state: Dictionary = {}
 var _turn_has_bonus_roll: bool = false
+var _test_forced_rolls: Array = []
 
 var seed: int = 0
 
@@ -67,6 +68,7 @@ func setup(vs_ai: bool, fixed_seed_enabled: bool, fixed_seed_value: int) -> void
 	_pending_decision = {}
 	_auction_state = {}
 	_turn_has_bonus_roll = false
+	_test_forced_rolls = []
 
 	_reset_decks()
 	phase = Phase.AWAIT_ROLL
@@ -107,6 +109,10 @@ func request_roll() -> void:
 		return
 
 	_roll_and_move(player)
+
+
+func set_test_forced_rolls(rolls: Array) -> void:
+	_test_forced_rolls = rolls.duplicate()
 
 
 func respond(action: Dictionary) -> void:
@@ -159,8 +165,9 @@ func _reset_decks() -> void:
 
 
 func _roll_and_move(player: PlayerState) -> void:
-	var d1: int = rng.roll_d6()
-	var d2: int = rng.roll_d6()
+	var roll_pair: Array[int] = _take_test_roll_pair()
+	var d1: int = roll_pair[0]
+	var d2: int = roll_pair[1]
 	last_roll = [d1, d2]
 
 	var is_doubles: bool = d1 == d2
@@ -471,8 +478,9 @@ func _handle_jail_choice(action: Dictionary) -> void:
 
 
 func _handle_jail_roll(player: PlayerState) -> void:
-	var d1: int = rng.roll_d6()
-	var d2: int = rng.roll_d6()
+	var roll_pair: Array[int] = _take_test_roll_pair()
+	var d1: int = roll_pair[0]
+	var d2: int = roll_pair[1]
 	last_roll = [d1, d2]
 	var is_doubles: bool = d1 == d2
 
@@ -607,3 +615,11 @@ func _check_bankruptcy(player: PlayerState) -> void:
 	_emit_log("%s is bankrupt. Game over." % player.player_name)
 	game_over.emit(winner_index)
 	_emit_state()
+
+
+func _take_test_roll_pair() -> Array[int]:
+	if _test_forced_rolls.size() > 0:
+		var forced: Array = _test_forced_rolls.pop_front()
+		if forced.size() >= 2:
+			return [int(forced[0]), int(forced[1])]
+	return [rng.roll_d6(), rng.roll_d6()]
