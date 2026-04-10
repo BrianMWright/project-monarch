@@ -1,5 +1,7 @@
 extends RefCounted
 
+const GameState := preload("res://game/game_state.gd")
+const AiAgent := preload("res://game/ai_agent.gd")
 
 func run(ctx) -> void:
 	var snapshot_a := _simulate(999, 12)
@@ -20,9 +22,9 @@ func _simulate(seed: int, turns: int) -> Dictionary:
 			break
 
 		while gs.phase == GameState.Phase.AWAIT_DECISION:
-			var snap := gs.get_snapshot()
+			var snap: Dictionary = gs.get_snapshot()
 			var decision: Dictionary = snap.get("pending_decision", {})
-			var action := ai.choose_action(decision)
+			var action: Dictionary = ai.choose_action(decision)
 			if str(decision.get("type", "")) == "END_TURN_CONFIRM":
 				action = {"action": "end_turn"}
 				turns -= 1
