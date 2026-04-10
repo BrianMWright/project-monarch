@@ -49,7 +49,7 @@ func _find_test_files() -> Array[String]:
 			continue
 		if not name.begins_with("test_"):
 			continue
-		if name == "test_runner.gd":
+		if name == "test_runner.gd" or name == "test_context.gd":
 			continue
 		if not name.ends_with(".gd"):
 			continue

@@ -1,6 +1,6 @@
 ## rng_service.gd
-## Deterministic RNG using a pure GDScript LCG (Knuth MMIX).
-## Produces identical sequences for the same seed regardless of Godot instance order.
+## Deterministic RNG using a 32-bit LCG (Numerical Recipes).
+## All arithmetic stays within int64 range — no overflow, no float conversion.
 
 class_name RngService
 extends RefCounted
@@ -11,29 +11,26 @@ var _state: int
 
 func _init(p_seed: int) -> void:
 	seed = p_seed
-	_state = p_seed if p_seed != 0 else 1
+	_state = p_seed & 0xFFFFFFFF if p_seed != 0 else 1
 
 
 func reseed(p_seed: int) -> void:
 	seed = p_seed
-	_state = p_seed if p_seed != 0 else 1
+	_state = p_seed & 0xFFFFFFFF if p_seed != 0 else 1
 
 
 func _next() -> int:
-	# Knuth MMIX LCG — deterministic, wraps on int64 overflow
-	_state = _state * 6364136223846793005 + 1442695040888963407
+	_state = (_state * 1664525 + 1013904223) & 0xFFFFFFFF
 	return _state
 
 
 func randi_range(min_inclusive: int, max_inclusive: int) -> int:
 	var range_size: int = max_inclusive - min_inclusive + 1
-	var pos: int = _next() & 0x7FFFFFFFFFFFFFFF
-	return min_inclusive + (pos % range_size)
+	return min_inclusive + (_next() % range_size)
 
 
 func randf() -> float:
-	var pos: int = _next() & 0x7FFFFFFFFFFFFFFF
-	return float(pos) / float(0x7FFFFFFFFFFFFFFF)
+	return float(_next()) / 4294967296.0
 
 
 func roll_d6() -> int:
