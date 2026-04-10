@@ -14,6 +14,9 @@ func run(ctx) -> void:
 	_test_double_roll_buy_continues_turn(ctx)
 	_test_double_roll_auction_continues_turn(ctx)
 	_test_double_roll_then_regular_roll_ends_turn(ctx)
+	_test_unowned_property_prompts_buy_or_auction(ctx)
+	_test_doubles_keep_same_player_turn_after_owned_tile(ctx)
+	_test_three_doubles_send_player_to_jail(ctx)
 
 
 func _simulate(p_seed: int, turns: int) -> Dictionary:
@@ -59,7 +62,7 @@ func _test_double_roll_buy_continues_turn(ctx) -> void:
 	gs.respond({"action": "buy"})
 	snap = gs.get_snapshot()
 	ctx.assert_eq(int(snap.get("phase", -1)), GameState.Phase.AWAIT_ROLL, "same player keeps bonus roll after buy")
-	ctx.assert_true(str(snap.get("pending_decision", {}).get("type", "")) == "", "no pending decision after buy")
+	ctx.assert_true(snap.get("pending_decision", {}).is_empty(), "no pending decision after buy")
 	ctx.assert_eq(int(snap.get("current_player_index", -1)), 0, "current player remains Player 1")
 
 
@@ -77,6 +80,7 @@ func _test_double_roll_auction_continues_turn(ctx) -> void:
 	gs.respond({"action": "pass"})
 	var after_auction: Dictionary = gs.get_snapshot()
 	ctx.assert_eq(int(after_auction.get("phase", -1)), GameState.Phase.AWAIT_ROLL, "same player keeps bonus roll after auction")
+	ctx.assert_true(after_auction.get("pending_decision", {}).is_empty(), "auction leaves no pending decision")
 	ctx.assert_eq(int(after_auction.get("current_player_index", -1)), 0, "current player remains Player 1 after auction")
 
 
@@ -94,3 +98,45 @@ func _test_double_roll_then_regular_roll_ends_turn(ctx) -> void:
 	snap = gs.get_snapshot()
 	ctx.assert_eq(int(snap.get("phase", -1)), GameState.Phase.AWAIT_DECISION, "non-double turn resolves to end-turn confirmation")
 	ctx.assert_eq(str(snap.get("pending_decision", {}).get("type", "")), "END_TURN_CONFIRM", "turn ends after non-double bonus roll")
+
+
+func _test_unowned_property_prompts_buy_or_auction(ctx) -> void:
+	var gs: GameState = GameState.new()
+	gs.setup(false, true, 1)
+	gs.set_test_forced_rolls([[3, 3]])
+	gs.request_roll()
+
+	var snap: Dictionary = gs.get_snapshot()
+	ctx.assert_eq(str(snap.get("pending_decision", {}).get("type", "")), "BUY_OR_AUCTION", "unowned property prompts buy or auction")
+	ctx.assert_eq(str(snap.get("pending_decision", {}).get("tile_name", "")), "Oriental Avenue", "forced roll lands on expected tile")
+
+
+func _test_doubles_keep_same_player_turn_after_owned_tile(ctx) -> void:
+	var gs: GameState = GameState.new()
+	gs.setup(false, true, 1)
+	gs.owners[6] = 1
+	gs.set_test_forced_rolls([[3, 3], [2, 3]])
+	gs.request_roll()
+	gs.respond({"action": "buy"})
+	var snap: Dictionary = gs.get_snapshot()
+	ctx.assert_eq(int(snap.get("phase", -1)), GameState.Phase.AWAIT_ROLL, "still same player after first doubles decision")
+
+	gs.request_roll()
+	snap = gs.get_snapshot()
+	ctx.assert_eq(int(snap.get("phase", -1)), GameState.Phase.AWAIT_DECISION, "non-double resolves turn")
+	ctx.assert_eq(str(snap.get("pending_decision", {}).get("type", "")), "END_TURN_CONFIRM", "owned-tile double still ends turn on non-double second roll")
+
+
+func _test_three_doubles_send_player_to_jail(ctx) -> void:
+	var gs: GameState = GameState.new()
+	gs.setup(false, true, 1)
+	gs.set_test_forced_rolls([[3, 3], [4, 4], [5, 5]])
+	gs.request_roll()
+	gs.respond({"action": "buy"})
+	gs.request_roll()
+	gs.respond({"action": "buy"})
+	gs.request_roll()
+
+	var snap: Dictionary = gs.get_snapshot()
+	ctx.assert_eq(int(snap.get("phase", -1)), GameState.Phase.AWAIT_DECISION, "third doubles ends in end-turn decision")
+	ctx.assert_eq(str(snap.get("pending_decision", {}).get("type", "")), "END_TURN_CONFIRM", "third doubles forces turn end")
