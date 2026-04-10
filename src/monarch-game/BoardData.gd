@@ -89,5 +89,6 @@ func get_utility_indices() -> Array[int]:
 
 func get_property_group_indices(group: String) -> Array[int]:
 	if GROUP_INDICES.has(group):
-		return (GROUP_INDICES[group] as Array[int]).duplicate()
+		var indices: Array = GROUP_INDICES[group]
+		return indices.duplicate()
 	return []
